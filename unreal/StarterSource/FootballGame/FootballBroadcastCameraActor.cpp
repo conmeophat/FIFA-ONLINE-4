@@ -1,6 +1,7 @@
 #include "FootballBroadcastCameraActor.h"
 
 #include "Camera/CameraComponent.h"
+#include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
 #include "Components/SceneComponent.h"
 
@@ -28,9 +29,12 @@ void AFootballBroadcastCameraActor::BeginPlay()
 
     if (bActivateAsPlayerViewOnBeginPlay)
     {
-        if (APlayerController* PlayerController = GetWorld()->GetFirstPlayerController())
+        if (UWorld* World = GetWorld())
         {
-            PlayerController->SetViewTargetWithBlend(this, 0.75f);
+            if (APlayerController* PlayerController = World->GetFirstPlayerController())
+            {
+                PlayerController->SetViewTargetWithBlend(this, 0.75f);
+            }
         }
     }
 }
