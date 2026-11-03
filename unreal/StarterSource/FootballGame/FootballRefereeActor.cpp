@@ -1,7 +1,6 @@
 #include "FootballRefereeActor.h"
 
 #include "FootballBallActor.h"
-#include "Camera/CameraTypes.h"
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
