@@ -23,6 +23,17 @@ enum class EFootballBallAction : uint8
 
 
 UENUM(BlueprintType)
+enum class EFootballAnimationCue : uint8
+{
+    None UMETA(DisplayName = "None"),
+    ShoulderDuel UMETA(DisplayName = "Shoulder duel"),
+    FoulReaction UMETA(DisplayName = "Foul reaction"),
+    GoalkeeperCatch UMETA(DisplayName = "Goalkeeper catch"),
+    GoalkeeperDive UMETA(DisplayName = "Goalkeeper dive"),
+    GoalkeeperDistribution UMETA(DisplayName = "Goalkeeper distribution")
+};
+
+UENUM(BlueprintType)
 enum class EFootballBalanceState : uint8
 {
     Stable UMETA(DisplayName = "Stable"),
