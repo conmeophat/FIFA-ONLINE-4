@@ -137,13 +137,13 @@ $InputMappings = @(
     '+ActionMappings=(ActionName="Sprint",bShift=False,bCtrl=False,bAlt=False,bCmd=False,Key=LeftShift)',
     '+ActionMappings=(ActionName="Sprint",bShift=False,bCtrl=False,bAlt=False,bCmd=False,Key=Gamepad_LeftShoulder)',
     '+ActionMappings=(ActionName="Jump",bShift=False,bCtrl=False,bAlt=False,bCmd=False,Key=SpaceBar)',
-    '+ActionMappings=(ActionName="Jump",bShift=False,bCtrl=False,bAlt=False,bCmd=False,Key=Gamepad_FaceButton_Bottom),
+    '+ActionMappings=(ActionName="Jump",bShift=False,bCtrl=False,bAlt=False,bCmd=False,Key=Gamepad_FaceButton_Bottom)',
     '+ActionMappings=(ActionName="Pass",bShift=False,bCtrl=False,bAlt=False,bCmd=False,Key=E)',
     '+ActionMappings=(ActionName="Pass",bShift=False,bCtrl=False,bAlt=False,bCmd=False,Key=Gamepad_FaceButton_Left)',
     '+ActionMappings=(ActionName="ThroughBall",bShift=False,bCtrl=False,bAlt=False,bCmd=False,Key=Q)',
     '+ActionMappings=(ActionName="ThroughBall",bShift=False,bCtrl=False,bAlt=False,bCmd=False,Key=Gamepad_FaceButton_Top)',
     '+ActionMappings=(ActionName="Shoot",bShift=False,bCtrl=False,bAlt=False,bCmd=False,Key=LeftMouseButton)',
-    '+ActionMappings=(ActionName="Shoot",bShift=False,bCtrl=False,bAlt=False,bCmd=False,Key=Gamepad_FaceButton_Right)''
+    '+ActionMappings=(ActionName="Shoot",bShift=False,bCtrl=False,bAlt=False,bCmd=False,Key=Gamepad_FaceButton_Right)'
 )
 
 $MissingMappings = @($InputMappings | Where-Object { -not $InputContent.Contains($_) })
