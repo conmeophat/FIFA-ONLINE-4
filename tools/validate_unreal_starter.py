@@ -47,6 +47,7 @@ REQUIRED_SYMBOLS = {
         "ApplyContestImpact",
     ],
     "unreal/StarterSource/FootballGame/FootballPlayerCharacter.cpp": [
+        "TryExecuteAITacticalKick", "ApplyKickFromFoot", "EFootballTacticalAction::Cross",
         "UpdateFootballFacing", "UpdateBalance", "UpdateDynamicMovementTuning",
         "FMath::FixedTurn", "BrakingDecelerationWalking",
         "Movement->AddImpulse", "StartBrace", "StopBrace",
@@ -58,25 +59,31 @@ REQUIRED_SYMBOLS = {
     ],
     "unreal/StarterSource/FootballGame/FootballAITypes.h": [
         "EFootballPlayerRole", "EFootballAITaskState", "SupportRun", "PressOpponent", "MarkOpponent",
+        "EFootballFormation", "Formation433", "Formation4231", "Formation442",
+        "EFootballMatchPhase", "EFootballTacticalAction", "ThroughBall", "Cross",
     ],
     "unreal/StarterSource/FootballGame/FootballTeamAIController.h": [
-        "DecisionIntervalSeconds", "CurrentTaskState", "FindSpaceTarget", "ApplyCloseContest",
+        "DecisionIntervalSeconds", "CurrentTaskState", "FindFormationTarget",
+        "TryTacticalBallAction", "GetPassLaneClearance", "CurrentMatchPhase", "CurrentTacticalAction",
     ],
     "unreal/StarterSource/FootballGame/FootballTeamAIController.cpp": [
         "FindClosestPlayer", "SupportRun", "PressOpponent", "MarkOpponent",
-        "FindSpaceTarget", "AddMovementInput", "ApplyContestImpact",
+        "FindFormationTarget", "TryTacticalBallAction", "ThroughBall", "Cross",
+        "Formation433", "Formation4231", "Formation442", "AddMovementInput", "ApplyContestImpact",
     ],
     "unreal/StarterSource/FootballGame/FootballAIPlayerCharacter.cpp": [
         "AIControllerClass", "AFootballTeamAIController::StaticClass", "PlacedInWorldOrSpawned",
     ],
     "unreal/StarterSource/FootballGame/FootballPlayerCharacter.h": [
-        "TeamId", "AttackDirectionSign", "TeamRole",
+        "TeamId", "AttackDirectionSign", "TeamRole", "TeamFormation", "SquadSlotIndex",
+        "TryExecuteAITacticalKick",
     ],
     "unreal/StarterSource/FootballGame/FootballPlayerAnimInstance.cpp": [
         "AFootballTeamAIController", "GetCurrentTaskState",
+        "GetCurrentMatchPhase", "GetCurrentTacticalAction",
     ],
     "unreal/StarterSource/FootballGame/FootballPlayerAnimInstance.h": [
-        "bIsAIControlled", "AITaskState",
+        "bIsAIControlled", "AITaskState", "MatchPhase", "TacticalAction",
         "MovementAcceleration", "TurnAngle", "bIsChangingDirection",
         "Balance", "bIsOffBalance", "bIsBracing", "bIsContestStunned",
         "EFootballBalanceState",

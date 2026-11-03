@@ -3,7 +3,92 @@
 #include "FootballBallActor.h"
 #include "FootballPlayerCharacter.h"
 #include "EngineUtils.h"
-#include "GameFramework/CharacterMovementComponent.h"
+
+namespace
+{
+    FVector2D GetFormationOffset(
+        const EFootballFormation Formation,
+        const int32 SquadSlot
+    )
+    {
+        const int32 Slot = FMath::Clamp(SquadSlot, 0, 10);
+
+        // X is relative to the team's attacking direction; Y selects the lane.
+        static const FVector2D Formation433[11] = {
+            FVector2D(-4200.0f, 0.0f),
+            FVector2D(-1550.0f, -1650.0f),
+            FVector2D(-1750.0f, -540.0f),
+            FVector2D(-1750.0f, 540.0f),
+            FVector2D(-1550.0f, 1650.0f),
+            FVector2D(-650.0f, 0.0f),
+            FVector2D(-180.0f, -850.0f),
+            FVector2D(-180.0f, 850.0f),
+            FVector2D(900.0f, -1550.0f),
+            FVector2D(1280.0f, 0.0f),
+            FVector2D(900.0f, 1550.0f)
+        };
+        static const FVector2D Formation4231[11] = {
+            FVector2D(-4200.0f, 0.0f),
+            FVector2D(-1550.0f, -1650.0f),
+            FVector2D(-1750.0f, -540.0f),
+            FVector2D(-1750.0f, 540.0f),
+            FVector2D(-1550.0f, 1650.0f),
+            FVector2D(-850.0f, -520.0f),
+            FVector2D(-850.0f, 520.0f),
+            FVector2D(250.0f, 0.0f),
+            FVector2D(500.0f, -1500.0f),
+            FVector2D(1320.0f, 0.0f),
+            FVector2D(500.0f, 1500.0f)
+        };
+        static const FVector2D Formation442[11] = {
+            FVector2D(-4200.0f, 0.0f),
+            FVector2D(-1550.0f, -1650.0f),
+            FVector2D(-1750.0f, -540.0f),
+            FVector2D(-1750.0f, 540.0f),
+            FVector2D(-1550.0f, 1650.0f),
+            FVector2D(180.0f, -1550.0f),
+            FVector2D(-250.0f, -520.0f),
+            FVector2D(-250.0f, 520.0f),
+            FVector2D(180.0f, 1550.0f),
+            FVector2D(1180.0f, -520.0f),
+            FVector2D(1180.0f, 520.0f)
+        };
+
+        switch (Formation)
+        {
+        case EFootballFormation::Formation4231:
+            return Formation4231[Slot];
+        case EFootballFormation::Formation442:
+            return Formation442[Slot];
+        case EFootballFormation::Formation433:
+        default:
+            return Formation433[Slot];
+        }
+    }
+
+    float DistancePointToSegment2D(
+        const FVector& Point,
+        const FVector& SegmentStart,
+        const FVector& SegmentEnd
+    )
+    {
+        FVector Segment = SegmentEnd - SegmentStart;
+        Segment.Z = 0.0f;
+        FVector ToPoint = Point - SegmentStart;
+        ToPoint.Z = 0.0f;
+        const float LengthSquared = Segment.SizeSquared();
+        if (LengthSquared <= KINDA_SMALL_NUMBER)
+        {
+            return ToPoint.Size();
+        }
+        const float T = FMath::Clamp(
+            FVector::DotProduct(ToPoint, Segment) / LengthSquared,
+            0.0f,
+            1.0f
+        );
+        return FVector::Dist2D(Point, SegmentStart + Segment * T);
+    }
+}
 
 AFootballTeamAIController::AFootballTeamAIController()
 {
@@ -18,12 +103,16 @@ void AFootballTeamAIController::OnPossess(APawn* InPawn)
         HomeLocation = InPawn->GetActorLocation();
     }
     DecisionAccumulator = 0.0f;
+    TacticalActionCooldown = 0.0f;
 }
 
 void AFootballTeamAIController::OnUnPossess()
 {
     CurrentBallCarrier = nullptr;
+    CurrentTacticalTarget = nullptr;
     CurrentTaskState = EFootballAITaskState::Idle;
+    CurrentMatchPhase = EFootballMatchPhase::TransitionToAttack;
+    CurrentTacticalAction = EFootballTacticalAction::None;
     bHasCachedMoveTarget = false;
     CachedTeammates.Reset();
     Super::OnUnPossess();
@@ -33,6 +122,7 @@ void AFootballTeamAIController::Tick(const float DeltaSeconds)
 {
     Super::Tick(DeltaSeconds);
     ContestCooldown = FMath::Max(0.0f, ContestCooldown - DeltaSeconds);
+    TacticalActionCooldown = FMath::Max(0.0f, TacticalActionCooldown - DeltaSeconds);
     DecisionAccumulator += DeltaSeconds;
     if (DecisionAccumulator >= FMath::Max(0.05f, DecisionIntervalSeconds))
     {
@@ -40,7 +130,7 @@ void AFootballTeamAIController::Tick(const float DeltaSeconds)
         UpdateTeamDecision();
     }
 
-    // Movement input must be supplied every frame; tactical decisions are throttled.
+    // Tactical decisions are throttled, but movement input is applied each frame.
     ApplyCachedSteering();
 }
 
@@ -86,6 +176,273 @@ AFootballPlayerCharacter* AFootballTeamAIController::FindClosestPlayer(
     return Closest;
 }
 
+EFootballPlayerRole AFootballTeamAIController::ResolveRole(
+    const AFootballPlayerCharacter* Player
+) const
+{
+    if (!IsValid(Player))
+    {
+        return EFootballPlayerRole::Midfielder;
+    }
+    if (Player->TeamRole != EFootballPlayerRole::Midfielder)
+    {
+        return Player->TeamRole;
+    }
+
+    const int32 Slot = FMath::Clamp(Player->SquadSlotIndex, 0, 10);
+    if (Slot == 0)
+    {
+        return EFootballPlayerRole::Goalkeeper;
+    }
+    if (Slot >= 1 && Slot <= 4)
+    {
+        return EFootballPlayerRole::Defender;
+    }
+    if (Slot == 8 || Slot == 10)
+    {
+        return EFootballPlayerRole::Winger;
+    }
+    if (Slot == 9)
+    {
+        return EFootballPlayerRole::Forward;
+    }
+    return EFootballPlayerRole::Midfielder;
+}
+
+FVector AFootballTeamAIController::FindFormationTarget(
+    const FVector& BallLocation,
+    const AFootballPlayerCharacter* SelfPlayer,
+    const bool bDefending
+) const
+{
+    if (!IsValid(SelfPlayer))
+    {
+        return BallLocation;
+    }
+
+    FVector2D Offset = GetFormationOffset(
+        SelfPlayer->TeamFormation,
+        SelfPlayer->SquadSlotIndex
+    );
+
+    if (bDefending)
+    {
+        // Compress the team between the ball and its own goal while preserving lane width.
+        Offset.X = Offset.X * 0.52f - 420.0f;
+        Offset.Y *= 0.86f;
+    }
+
+    FVector Target = BallLocation + FVector(
+        Offset.X * static_cast<float>(SelfPlayer->AttackDirectionSign >= 0 ? 1 : -1),
+        Offset.Y,
+        0.0f
+    );
+
+    if (ResolveRole(SelfPlayer) == EFootballPlayerRole::Goalkeeper)
+    {
+        Target = HomeLocation;
+        Target.Y = FMath::Clamp(BallLocation.Y * 0.28f, -520.0f, 520.0f);
+    }
+
+    Target.X = FMath::Clamp(Target.X, -FieldHalfLengthCm + 250.0f, FieldHalfLengthCm - 250.0f);
+    Target.Y = FMath::Clamp(Target.Y, -FieldHalfWidthCm + 250.0f, FieldHalfWidthCm - 250.0f);
+    Target.Z = SelfPlayer->GetActorLocation().Z;
+    return Target;
+}
+
+float AFootballTeamAIController::GetPassLaneClearance(
+    const FVector& Start,
+    const FVector& End,
+    const TArray<AFootballPlayerCharacter*>& Opponents
+) const
+{
+    float Clearance = 2600.0f;
+    for (AFootballPlayerCharacter* Opponent : Opponents)
+    {
+        if (IsValid(Opponent))
+        {
+            Clearance = FMath::Min(
+                Clearance,
+                DistancePointToSegment2D(
+                    Opponent->GetActorLocation(),
+                    Start,
+                    End
+                )
+            );
+        }
+    }
+    return Clearance;
+}
+
+bool AFootballTeamAIController::TryTacticalBallAction(
+    AFootballPlayerCharacter* BallCarrier,
+    const FVector& BallLocation,
+    const TArray<AFootballPlayerCharacter*>& Teammates,
+    const TArray<AFootballPlayerCharacter*>& Opponents,
+    const int32 AttackDirectionSign
+)
+{
+    if (!IsValid(BallCarrier) ||
+        !BallCarrier->bHasBallControl ||
+        TacticalActionCooldown > 0.0f)
+    {
+        return false;
+    }
+
+    const FVector GoalLocation(
+        static_cast<float>(AttackDirectionSign) * FieldHalfLengthCm,
+        0.0f,
+        BallLocation.Z
+    );
+    const float GoalDistance = FVector::Dist2D(BallLocation, GoalLocation);
+    const float AttackProgress = BallLocation.X * static_cast<float>(AttackDirectionSign);
+
+    if (GoalDistance <= ShotRangeCm &&
+        FMath::Abs(BallLocation.Y) <= 2600.0f)
+    {
+        if (BallCarrier->TryExecuteAITacticalKick(
+            EFootballTacticalAction::Shot,
+            GoalLocation
+        ))
+        {
+            CurrentTacticalAction = EFootballTacticalAction::Shot;
+            CurrentTacticalTarget = nullptr;
+            TacticalActionCooldown = 1.55f;
+            return true;
+        }
+    }
+
+    // A wide player in the attacking third looks for a central runner and crosses.
+    const bool bInCrossingChannel =
+        FMath::Abs(BallLocation.Y) >= FieldHalfWidthCm * 0.58f &&
+        AttackProgress >= FieldHalfLengthCm - CrossZoneDepthCm;
+    if (bInCrossingChannel)
+    {
+        AFootballPlayerCharacter* CrossTarget = nullptr;
+        float BestCrossScore = -TNumericLimits<float>::Max();
+        for (AFootballPlayerCharacter* Teammate : Teammates)
+        {
+            if (!IsValid(Teammate) || Teammate == BallCarrier)
+            {
+                continue;
+            }
+
+            const FVector TeammateLocation = Teammate->GetActorLocation();
+            const float ForwardRun =
+                (TeammateLocation.X - BallLocation.X) * static_cast<float>(AttackDirectionSign);
+            const float Centrality = FMath::Abs(TeammateLocation.Y);
+            if (ForwardRun < 150.0f || ForwardRun > 2600.0f || Centrality > 1650.0f)
+            {
+                continue;
+            }
+
+            const float Clearance = GetPassLaneClearance(
+                BallLocation,
+                TeammateLocation,
+                Opponents
+            );
+            const float Score = ForwardRun * 0.55f +
+                Clearance * 0.85f -
+                Centrality * 0.32f;
+            if (Score > BestCrossScore)
+            {
+                BestCrossScore = Score;
+                CrossTarget = Teammate;
+            }
+        }
+
+        const FVector CrossLocation = IsValid(CrossTarget)
+            ? CrossTarget->GetActorLocation() + CrossTarget->GetVelocity() * 0.28f
+            : FVector(
+                BallLocation.X + static_cast<float>(AttackDirectionSign) * 1450.0f,
+                0.0f,
+                BallLocation.Z
+            );
+
+        if (BallCarrier->TryExecuteAITacticalKick(
+            EFootballTacticalAction::Cross,
+            CrossLocation
+        ))
+        {
+            CurrentTacticalAction = EFootballTacticalAction::Cross;
+            CurrentTacticalTarget = CrossTarget;
+            TacticalActionCooldown = 1.75f;
+            return true;
+        }
+    }
+
+    AFootballPlayerCharacter* BestPassTarget = nullptr;
+    EFootballTacticalAction BestPassAction = EFootballTacticalAction::None;
+    float BestPassScore = -TNumericLimits<float>::Max();
+    FVector BestPassLocation = FVector::ZeroVector;
+
+    for (AFootballPlayerCharacter* Teammate : Teammates)
+    {
+        if (!IsValid(Teammate) || Teammate == BallCarrier)
+        {
+            continue;
+        }
+
+        const FVector ReceiverLocation = Teammate->GetActorLocation();
+        const float Distance = FVector::Dist2D(BallLocation, ReceiverLocation);
+        const float ForwardRun =
+            (ReceiverLocation.X - BallLocation.X) * static_cast<float>(AttackDirectionSign);
+
+        if (Distance < 380.0f || Distance > MaximumPassRangeCm || ForwardRun < -650.0f)
+        {
+            continue;
+        }
+
+        const float Clearance = GetPassLaneClearance(
+            BallLocation,
+            ReceiverLocation,
+            Opponents
+        );
+        if (Clearance < MinimumPassLaneClearanceCm)
+        {
+            continue;
+        }
+
+        const float SupportSpacing = FVector::Dist2D(
+            ReceiverLocation,
+            BallCarrier->GetActorLocation()
+        );
+        const float Score =
+            FMath::Min(Clearance, 1800.0f) * 0.72f +
+            FMath::Clamp(ForwardRun, -400.0f, 1800.0f) * 0.68f -
+            FMath::Abs(SupportSpacing - 1150.0f) * 0.22f;
+
+        if (Score > BestPassScore)
+        {
+            BestPassScore = Score;
+            BestPassTarget = Teammate;
+            BestPassAction = (
+                ForwardRun > 620.0f &&
+                Distance > 760.0f &&
+                Clearance > MinimumPassLaneClearanceCm * 1.55f
+            )
+                ? EFootballTacticalAction::ThroughBall
+                : EFootballTacticalAction::ShortPass;
+            BestPassLocation = ReceiverLocation + Teammate->GetVelocity() * (
+                BestPassAction == EFootballTacticalAction::ThroughBall ? 0.52f : 0.18f
+            );
+        }
+    }
+
+    if (IsValid(BestPassTarget) &&
+        BallCarrier->TryExecuteAITacticalKick(BestPassAction, BestPassLocation))
+    {
+        CurrentTacticalAction = BestPassAction;
+        CurrentTacticalTarget = BestPassTarget;
+        TacticalActionCooldown = 1.45f;
+        return true;
+    }
+
+    CurrentTacticalAction = EFootballTacticalAction::None;
+    CurrentTacticalTarget = nullptr;
+    return false;
+}
+
 void AFootballTeamAIController::UpdateTeamDecision()
 {
     AFootballPlayerCharacter* SelfPlayer = Cast<AFootballPlayerCharacter>(GetPawn());
@@ -101,7 +458,9 @@ void AFootballTeamAIController::UpdateTeamDecision()
     TArray<AFootballPlayerCharacter*> Teammates;
     TArray<AFootballPlayerCharacter*> Opponents;
     const int32 TeamId = SelfPlayer->TeamId;
-    const int32 AttackDirectionSign = SelfPlayer->AttackDirectionSign >= 0 ? 1 : -1;
+    const int32 AttackDirectionSign =
+        SelfPlayer->AttackDirectionSign >= 0 ? 1 : -1;
+
     for (AFootballPlayerCharacter* Player : AllPlayers)
     {
         if (!IsValid(Player))
@@ -126,7 +485,10 @@ void AFootballTeamAIController::UpdateTeamDecision()
         {
             continue;
         }
-        const float Distance = FVector::Dist2D(SelfPlayer->GetActorLocation(), (*It)->GetActorLocation());
+        const float Distance = FVector::Dist2D(
+            SelfPlayer->GetActorLocation(),
+            (*It)->GetActorLocation()
+        );
         if (Distance < NearestBallActorDistance)
         {
             NearestBallActorDistance = Distance;
@@ -136,6 +498,9 @@ void AFootballTeamAIController::UpdateTeamDecision()
 
     if (!IsValid(Ball))
     {
+        CurrentMatchPhase = EFootballMatchPhase::TransitionToAttack;
+        CurrentTacticalAction = EFootballTacticalAction::None;
+        CurrentTacticalTarget = nullptr;
         CurrentTaskState = EFootballAITaskState::RecoverShape;
         MoveTowards(HomeLocation, Teammates);
         return;
@@ -147,12 +512,17 @@ void AFootballTeamAIController::UpdateTeamDecision()
         FindClosestPlayer(AllPlayers, BallLocation, ClosestBallDistance);
 
     const bool bBallHasCarrier =
-        IsValid(ClosestToBall) && ClosestBallDistance <= BallPossessionRadiusCm;
+        IsValid(ClosestToBall) &&
+        ClosestBallDistance <= BallPossessionRadiusCm;
+
     CurrentBallCarrier = bBallHasCarrier ? ClosestToBall : nullptr;
 
     if (!bBallHasCarrier)
     {
-        // A loose ball is contested by the nearest footballer, not by the whole squad.
+        CurrentMatchPhase = EFootballMatchPhase::TransitionToAttack;
+        CurrentTacticalAction = EFootballTacticalAction::None;
+        CurrentTacticalTarget = nullptr;
+
         if (ClosestToBall == SelfPlayer)
         {
             CurrentTaskState = EFootballAITaskState::ChaseBall;
@@ -161,10 +531,10 @@ void AFootballTeamAIController::UpdateTeamDecision()
         else
         {
             CurrentTaskState = EFootballAITaskState::RecoverShape;
-            const FVector ShapeTarget = HomeLocation + FVector(
-                static_cast<float>(AttackDirectionSign) * 180.0f, 0.0f, 0.0f
+            MoveTowards(
+                FindFormationTarget(BallLocation, SelfPlayer, true),
+                Teammates
             );
-            MoveTowards(ShapeTarget, Teammates);
         }
         return;
     }
@@ -172,32 +542,65 @@ void AFootballTeamAIController::UpdateTeamDecision()
     const bool bOwnTeamHasPossession = ClosestToBall->TeamId == TeamId;
     if (bOwnTeamHasPossession)
     {
+        CurrentMatchPhase = EFootballMatchPhase::Attacking;
+
         if (ClosestToBall == SelfPlayer)
         {
             CurrentTaskState = EFootballAITaskState::CarryBall;
-            const FVector GoalRun = BallLocation + FVector(
-                static_cast<float>(AttackDirectionSign) * 1150.0f,
-                -BallLocation.Y * 0.22f,
+            if (TryTacticalBallAction(
+                SelfPlayer,
+                BallLocation,
+                Teammates,
+                Opponents,
+                AttackDirectionSign
+            ))
+            {
+                bHasCachedMoveTarget = false;
+                return;
+            }
+
+            const FVector CarryTarget = BallLocation + FVector(
+                static_cast<float>(AttackDirectionSign) * 900.0f,
+                -BallLocation.Y * 0.14f,
                 0.0f
             );
-            MoveTowards(GoalRun, Teammates);
+            MoveTowards(CarryTarget, Teammates);
             return;
         }
 
+        CurrentTacticalAction = EFootballTacticalAction::None;
+        CurrentTacticalTarget = ClosestToBall;
         CurrentTaskState = EFootballAITaskState::SupportRun;
-        const FVector Space = FindSpaceTarget(
-            BallLocation, Teammates, Opponents, AttackDirectionSign, SelfPlayer->TeamRole
+        MoveTowards(
+            FindFormationTarget(BallLocation, SelfPlayer, false),
+            Teammates
         );
-        MoveTowards(Space, Teammates);
         return;
     }
 
-    // One player presses; the rest protect lanes and mark opponents.
+    CurrentMatchPhase = EFootballMatchPhase::Defending;
+    CurrentTacticalAction = EFootballTacticalAction::None;
+    CurrentTacticalTarget = ClosestToBall;
+
+    // Pressing is organized by role/line: forwards and midfielders lead the press;
+    // defenders step out only when the ball has entered their defensive block.
     float NearestTeammateDistance = TNumericLimits<float>::Max();
     AFootballPlayerCharacter* NearestTeammate =
         FindClosestPlayer(Teammates, BallLocation, NearestTeammateDistance);
+    const EFootballPlayerRole SelfRole = ResolveRole(SelfPlayer);
+    const float OwnHalfProgress =
+        BallLocation.X * static_cast<float>(AttackDirectionSign);
+    const bool bRoleCanLeadPress =
+        SelfRole == EFootballPlayerRole::Forward ||
+        SelfRole == EFootballPlayerRole::Winger ||
+        SelfRole == EFootballPlayerRole::Midfielder;
+    const bool bDefenderMayStepOut =
+        SelfRole == EFootballPlayerRole::Defender && OwnHalfProgress < -950.0f;
+    const bool bCanPress = bRoleCanLeadPress || bDefenderMayStepOut;
 
-    if (NearestTeammate == SelfPlayer && NearestTeammateDistance <= PressingRadiusCm)
+    if (NearestTeammate == SelfPlayer &&
+        NearestTeammateDistance <= PressingRadiusCm &&
+        bCanPress)
     {
         CurrentTaskState = EFootballAITaskState::PressOpponent;
         MoveTowards(ClosestToBall->GetActorLocation(), Teammates);
@@ -205,19 +608,32 @@ void AFootballTeamAIController::UpdateTeamDecision()
         return;
     }
 
-    AFootballPlayerCharacter* MarkTarget = FindMarkTarget(Opponents, Teammates, BallLocation);
+    AFootballPlayerCharacter* MarkTarget =
+        FindMarkTarget(Opponents, Teammates, BallLocation);
     if (IsValid(MarkTarget))
     {
         CurrentTaskState = EFootballAITaskState::MarkOpponent;
         const FVector GoalSideTarget = MarkTarget->GetActorLocation() - FVector(
-            static_cast<float>(AttackDirectionSign) * 210.0f, 0.0f, 0.0f
+            static_cast<float>(AttackDirectionSign) * 210.0f,
+            0.0f,
+            0.0f
         );
-        MoveTowards(GoalSideTarget, Teammates);
+        const FVector FormationTarget =
+            FindFormationTarget(BallLocation, SelfPlayer, true);
+        const FVector MarkBlend = FMath::Lerp(
+            GoalSideTarget,
+            FormationTarget,
+            SelfRole == EFootballPlayerRole::Defender ? 0.42f : 0.18f
+        );
+        MoveTowards(MarkBlend, Teammates);
     }
     else
     {
         CurrentTaskState = EFootballAITaskState::RecoverShape;
-        MoveTowards(HomeLocation, Teammates);
+        MoveTowards(
+            FindFormationTarget(BallLocation, SelfPlayer, true),
+            Teammates
+        );
     }
 }
 
@@ -242,8 +658,10 @@ AFootballPlayerCharacter* AFootballTeamAIController::FindMarkTarget(
             continue;
         }
 
-        const float SelfDistance =
-            FVector::Dist2D(SelfPlayer->GetActorLocation(), Opponent->GetActorLocation());
+        const float SelfDistance = FVector::Dist2D(
+            SelfPlayer->GetActorLocation(),
+            Opponent->GetActorLocation()
+        );
         int32 CloserTeammates = 0;
         for (AFootballPlayerCharacter* Teammate : Teammates)
         {
@@ -251,20 +669,25 @@ AFootballPlayerCharacter* AFootballTeamAIController::FindMarkTarget(
             {
                 continue;
             }
-            const float TeammateDistance =
-                FVector::Dist2D(Teammate->GetActorLocation(), Opponent->GetActorLocation());
+            const float TeammateDistance = FVector::Dist2D(
+                Teammate->GetActorLocation(),
+                Opponent->GetActorLocation()
+            );
             if (TeammateDistance + 60.0f < SelfDistance)
             {
                 ++CloserTeammates;
             }
         }
 
-        const float BallThreatDistance =
-            FVector::Dist2D(Opponent->GetActorLocation(), BallLocation);
+        const float BallThreatDistance = FVector::Dist2D(
+            Opponent->GetActorLocation(),
+            BallLocation
+        );
         const float Score =
             1500.0f - SelfDistance +
             FMath::Max(0.0f, 1300.0f - BallThreatDistance) * 0.28f -
             static_cast<float>(CloserTeammates) * 650.0f;
+
         if (Score > BestScore)
         {
             BestScore = Score;
@@ -272,121 +695,6 @@ AFootballPlayerCharacter* AFootballTeamAIController::FindMarkTarget(
         }
     }
     return BestTarget;
-}
-
-FVector AFootballTeamAIController::FindSpaceTarget(
-    const FVector& BallLocation,
-    const TArray<AFootballPlayerCharacter*>& Teammates,
-    const TArray<AFootballPlayerCharacter*>& Opponents,
-    const int32 AttackDirectionSign,
-    const EFootballPlayerRole Role
-) const
-{
-    AFootballPlayerCharacter* SelfPlayer = Cast<AFootballPlayerCharacter>(GetPawn());
-    if (!IsValid(SelfPlayer))
-    {
-        return BallLocation;
-    }
-
-    float ForwardOffset = 350.0f;
-    switch (Role)
-    {
-    case EFootballPlayerRole::Goalkeeper:
-        ForwardOffset = -3600.0f;
-        break;
-    case EFootballPlayerRole::Defender:
-        ForwardOffset = -500.0f;
-        break;
-    case EFootballPlayerRole::Winger:
-        ForwardOffset = 850.0f;
-        break;
-    case EFootballPlayerRole::Forward:
-        ForwardOffset = 1250.0f;
-        break;
-    case EFootballPlayerRole::Midfielder:
-    default:
-        ForwardOffset = 350.0f;
-        break;
-    }
-
-    FVector Anchor = BallLocation + FVector(
-        static_cast<float>(AttackDirectionSign) * ForwardOffset,
-        HomeLocation.Y * 0.28f,
-        0.0f
-    );
-    if (Role == EFootballPlayerRole::Goalkeeper)
-    {
-        Anchor = HomeLocation;
-        Anchor.Y = FMath::Clamp(BallLocation.Y * 0.35f, -650.0f, 650.0f);
-    }
-
-    const FVector CandidateOffsets[] = {
-        FVector(-360.0f, -780.0f, 0.0f),
-        FVector(0.0f, -480.0f, 0.0f),
-        FVector(360.0f, -780.0f, 0.0f),
-        FVector(-420.0f, 0.0f, 0.0f),
-        FVector(0.0f, 0.0f, 0.0f),
-        FVector(420.0f, 0.0f, 0.0f),
-        FVector(-360.0f, 780.0f, 0.0f),
-        FVector(0.0f, 480.0f, 0.0f),
-        FVector(360.0f, 780.0f, 0.0f)
-    };
-
-    FVector BestLocation = Anchor;
-    float BestScore = -TNumericLimits<float>::Max();
-    for (const FVector& Offset : CandidateOffsets)
-    {
-        FVector Candidate = Anchor + FVector(
-            Offset.X * static_cast<float>(AttackDirectionSign), Offset.Y, 0.0f
-        );
-        Candidate.X = FMath::Clamp(
-            Candidate.X, -FieldHalfLengthCm + 250.0f, FieldHalfLengthCm - 250.0f
-        );
-        Candidate.Y = FMath::Clamp(
-            Candidate.Y, -FieldHalfWidthCm + 250.0f, FieldHalfWidthCm - 250.0f
-        );
-        Candidate.Z = SelfPlayer->GetActorLocation().Z;
-
-        float NearestOpponent = 1500.0f;
-        for (AFootballPlayerCharacter* Opponent : Opponents)
-        {
-            if (IsValid(Opponent))
-            {
-                NearestOpponent = FMath::Min(
-                    NearestOpponent, FVector::Dist2D(Candidate, Opponent->GetActorLocation())
-                );
-            }
-        }
-
-        float NearestTeammate = 1300.0f;
-        for (AFootballPlayerCharacter* Teammate : Teammates)
-        {
-            if (IsValid(Teammate) && Teammate != SelfPlayer)
-            {
-                NearestTeammate = FMath::Min(
-                    NearestTeammate, FVector::Dist2D(Candidate, Teammate->GetActorLocation())
-                );
-            }
-        }
-
-        const float AnchorDeviation = FVector::Dist2D(Candidate, Anchor);
-        const float HomeDeviation = FVector::Dist2D(Candidate, HomeLocation);
-        const float ForwardProgress =
-            (Candidate.X - BallLocation.X) * static_cast<float>(AttackDirectionSign);
-        const float Score =
-            FMath::Min(NearestOpponent, 1500.0f) * 0.0018f +
-            FMath::Min(NearestTeammate, 1300.0f) * 0.0012f -
-            AnchorDeviation * 0.0010f -
-            HomeDeviation * (Role == EFootballPlayerRole::Goalkeeper ? 0.0015f : 0.00025f) +
-            ForwardProgress * 0.00012f;
-
-        if (Score > BestScore)
-        {
-            BestScore = Score;
-            BestLocation = Candidate;
-        }
-    }
-    return BestLocation;
 }
 
 void AFootballTeamAIController::MoveTowards(
@@ -458,7 +766,9 @@ void AFootballTeamAIController::ApplyCachedSteering()
     }
 
     const float InputScale = FMath::Clamp(
-        Distance / FMath::Max(StopDistanceCm + 1.0f, SlowDownDistanceCm), 0.18f, 1.0f
+        Distance / FMath::Max(StopDistanceCm + 1.0f, SlowDownDistanceCm),
+        0.18f,
+        1.0f
     );
     ControlledPawn->AddMovementInput(Steering, InputScale);
 }
@@ -466,13 +776,16 @@ void AFootballTeamAIController::ApplyCachedSteering()
 void AFootballTeamAIController::ApplyCloseContest(AFootballPlayerCharacter* Opponent)
 {
     AFootballPlayerCharacter* SelfPlayer = Cast<AFootballPlayerCharacter>(GetPawn());
-    if (!bEnableAutomaticContestImpacts || ContestCooldown > 0.0f ||
-        !IsValid(SelfPlayer) || !IsValid(Opponent))
+    if (!bEnableAutomaticContestImpacts ||
+        ContestCooldown > 0.0f ||
+        !IsValid(SelfPlayer) ||
+        !IsValid(Opponent))
     {
         return;
     }
 
-    const FVector ToOpponent = Opponent->GetActorLocation() - SelfPlayer->GetActorLocation();
+    const FVector ToOpponent =
+        Opponent->GetActorLocation() - SelfPlayer->GetActorLocation();
     if (ToOpponent.Size2D() > ContestDistanceCm)
     {
         return;
@@ -484,7 +797,6 @@ void AFootballTeamAIController::ApplyCloseContest(AFootballPlayerCharacter* Oppo
         return;
     }
 
-    // Use a restrained shoulder-contact impulse with the v0.5 balance / brace system.
     Opponent->ApplyContestImpact(ImpactDirection, 105.0f, 0.10f);
     ContestCooldown = 1.15f;
 }

@@ -1,4 +1,4 @@
-"""Build a small playable AI football scrimmage in the current Unreal level."""
+"""Build a playable tactical AI football scrimmage in the current Unreal level."""
 
 import unreal
 
@@ -18,7 +18,9 @@ def remove_labeled_actor(subsystem, label):
             subsystem.destroy_actor(actor)
 
 
-def spawn_ai_player(subsystem, ai_class, label, location, team_id, attack_sign):
+def spawn_ai_player(
+    subsystem, ai_class, label, location, team_id, attack_sign, squad_slot
+):
     player = subsystem.spawn_actor_from_class(
         ai_class,
         unreal.Vector(location[0], location[1], location[2]),
@@ -30,6 +32,7 @@ def spawn_ai_player(subsystem, ai_class, label, location, team_id, attack_sign):
     player.set_actor_label(label)
     player.set_editor_property("team_id", team_id)
     player.set_editor_property("attack_direction_sign", attack_sign)
+    player.set_editor_property("squad_slot_index", squad_slot)
     return player
 
 
@@ -59,17 +62,39 @@ def main():
     player.set_editor_property("auto_possess_player", unreal.AutoReceiveInput.PLAYER0)
     player.set_editor_property("team_id", 0)
     player.set_editor_property("attack_direction_sign", 1)
+    player.set_editor_property("squad_slot_index", 6)
 
-    # Team 0 attacks +X and supports the human-controlled player.
-    spawn_ai_player(subsystem, ai_character_class, "FPO_AI_T0_Left", (250.0, -950.0, 100.0), 0, 1)
-    spawn_ai_player(subsystem, ai_character_class, "FPO_AI_T0_Right", (450.0, 950.0, 100.0), 0, 1)
-    spawn_ai_player(subsystem, ai_character_class, "FPO_AI_T0_Forward", (1250.0, 0.0, 100.0), 0, 1)
+    # Team 0 attacks +X: one central midfielder, one winger and one striker support the user.
+    spawn_ai_player(
+        subsystem, ai_character_class, "FPO_AI_T0_Left",
+        (250.0, -950.0, 100.0), 0, 1, 7
+    )
+    spawn_ai_player(
+        subsystem, ai_character_class, "FPO_AI_T0_Right",
+        (450.0, 950.0, 100.0), 0, 1, 8
+    )
+    spawn_ai_player(
+        subsystem, ai_character_class, "FPO_AI_T0_Forward",
+        (1250.0, 0.0, 100.0), 0, 1, 9
+    )
 
-    # Team 1 attacks -X and defends the human team's current attack.
-    spawn_ai_player(subsystem, ai_character_class, "FPO_AI_T1_Left", (1050.0, -900.0, 100.0), 1, -1)
-    spawn_ai_player(subsystem, ai_character_class, "FPO_AI_T1_Right", (1100.0, 900.0, 100.0), 1, -1)
-    spawn_ai_player(subsystem, ai_character_class, "FPO_AI_T1_Defender", (1750.0, 0.0, 100.0), 1, -1)
-    spawn_ai_player(subsystem, ai_character_class, "FPO_AI_T1_Forward", (2350.0, 0.0, 100.0), 1, -1)
+    # Team 1 uses the same 4-3-3 slots but attacks toward negative X.
+    spawn_ai_player(
+        subsystem, ai_character_class, "FPO_AI_T1_Left",
+        (1050.0, -900.0, 100.0), 1, -1, 1
+    )
+    spawn_ai_player(
+        subsystem, ai_character_class, "FPO_AI_T1_Right",
+        (1100.0, 900.0, 100.0), 1, -1, 3
+    )
+    spawn_ai_player(
+        subsystem, ai_character_class, "FPO_AI_T1_Defender",
+        (1750.0, 0.0, 100.0), 1, -1, 5
+    )
+    spawn_ai_player(
+        subsystem, ai_character_class, "FPO_AI_T1_Forward",
+        (2350.0, 0.0, 100.0), 1, -1, 9
+    )
 
     ball = subsystem.spawn_actor_from_class(
         ball_class,
@@ -95,9 +120,10 @@ def main():
     if not unreal.EditorLoadingAndSavingUtils.save_current_level():
         unreal.log_warning("Could not auto-save level. Save it manually.")
 
-    unreal.log("Football Team AI v0.6: 1 human, 7 AI footballers and 1 physics ball spawned.")
-    unreal.log("AI tasks: loose-ball chase, carry, support runs, space-finding, pressing and marking.")
-    unreal.log("The prototype uses direct steering and does not require a NavMesh.")
+    unreal.log("Football Tactical AI v0.7: 1 human, 7 AI footballers and 1 physics ball spawned.")
+    unreal.log("Team formation defaults to 4-3-3; each player has a SquadSlotIndex.")
+    unreal.log("AI can select short passes, through balls, crosses, and shots from open lanes.")
+    unreal.log("Tactical phases: attack, defend, transition to attack and transition to defence.")
 
 
 main()

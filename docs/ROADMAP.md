@@ -67,6 +67,11 @@
 - [x] v0.6: one-player press assignment, teammate marking and goal-side defensive positioning
 - [x] v0.6: close shoulder-contest calls the v0.5 balance / brace response with cooldown
 - [x] v0.6: test builder spawns a human player and seven AI footballers across two teams
+- [x] v0.7: 4-3-3, 4-2-3-1 and 4-4-2 formation slot layouts
+- [x] v0.7: attacking / defending match phases and transition telemetry
+- [x] v0.7: line-aware pressing and team-shape compression / recovery
+- [x] v0.7: AI short pass, through ball, wide cross and shot choice using lane clearance
+- [x] v0.7: target-based physical AI kick API and 4-3-3 test squad slot assignment
 - [ ] Connect opponent / teammate overlap events to ApplyContestImpact in a later AI milestone
 - [ ] Tune all movement values in local Unreal playtests with the imported rig and locomotion animations
 

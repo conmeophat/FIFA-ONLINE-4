@@ -47,6 +47,12 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Football|Team")
     EFootballPlayerRole TeamRole = EFootballPlayerRole::Midfielder;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Football|Team")
+    EFootballFormation TeamFormation = EFootballFormation::Formation433;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Football|Team", meta = (ClampMin = "0", ClampMax = "10"))
+    int32 SquadSlotIndex = 5;
+
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Football|Movement", meta = (ClampMin = "100.0"))
     float WalkSpeedCmPerSec = 480.0f;
 
@@ -169,6 +175,13 @@ public:
      * Called by an opponent / overlap / tackle system when a contest contact occurs.
      * ImpulseCmPerSec is applied as a velocity change; brace reduces both push and balance loss.
      */
+    /** AI pass / through-ball / cross / shot using the physical ball and a selected target. */
+    UFUNCTION(BlueprintCallable, Category = "Football|AI")
+    bool TryExecuteAITacticalKick(
+        EFootballTacticalAction Action,
+        const FVector& TargetLocation
+    );
+
     UFUNCTION(BlueprintCallable, Category = "Football|Contest")
     void ApplyContestImpact(
         const FVector& ImpactDirection,

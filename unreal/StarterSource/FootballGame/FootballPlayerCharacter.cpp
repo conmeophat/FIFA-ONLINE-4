@@ -318,6 +318,116 @@ void AFootballPlayerCharacter::StopBrace()
     UpdateDynamicMovementTuning();
 }
 
+bool AFootballPlayerCharacter::TryExecuteAITacticalKick(
+    const EFootballTacticalAction Action,
+    const FVector& TargetLocation
+)
+{
+    if (Action == EFootballTacticalAction::None ||
+        bIsContestStunned ||
+        PendingBallAction != EFootballBallAction::None)
+    {
+        return false;
+    }
+
+    if (!IsValid(ControlledBall))
+    {
+        RefreshNearbyBall();
+    }
+    if (!IsValid(ControlledBall) ||
+        FVector::Dist2D(GetActorLocation(), ControlledBall->GetActorLocation()) > 320.0f)
+    {
+        return false;
+    }
+
+    const FVector BallLocation = ControlledBall->GetActorLocation();
+    const FVector KickDirection = (TargetLocation - BallLocation).GetSafeNormal2D();
+    if (KickDirection.IsNearlyZero())
+    {
+        return false;
+    }
+
+    float SpeedCmPerSec = 0.0f;
+    float LiftCmPerSec = 0.0f;
+    float SpinDegPerSec = 0.0f;
+    EFootballBallAction VisualAction = EFootballBallAction::ShortPass;
+
+    switch (Action)
+    {
+    case EFootballTacticalAction::ShortPass:
+        SpeedCmPerSec = 1480.0f;
+        LiftCmPerSec = 18.0f;
+        SpinDegPerSec = 65.0f;
+        VisualAction = EFootballBallAction::ShortPass;
+        break;
+    case EFootballTacticalAction::ThroughBall:
+        SpeedCmPerSec = 1900.0f;
+        LiftCmPerSec = 95.0f;
+        SpinDegPerSec = 120.0f;
+        VisualAction = EFootballBallAction::ThroughBall;
+        break;
+    case EFootballTacticalAction::Cross:
+        SpeedCmPerSec = 1780.0f;
+        LiftCmPerSec = 520.0f;
+        SpinDegPerSec = 170.0f;
+        VisualAction = EFootballBallAction::ThroughBall;
+        break;
+    case EFootballTacticalAction::Clear:
+        SpeedCmPerSec = 2150.0f;
+        LiftCmPerSec = 240.0f;
+        SpinDegPerSec = 150.0f;
+        VisualAction = EFootballBallAction::Shot;
+        break;
+    case EFootballTacticalAction::Shot:
+        SpeedCmPerSec = 2550.0f;
+        LiftCmPerSec = 350.0f;
+        SpinDegPerSec = 230.0f;
+        VisualAction = EFootballBallAction::Shot;
+        break;
+    default:
+        return false;
+    }
+
+    const float BalancePowerScale = FMath::Lerp(0.72f, 1.0f, Balance);
+    SpeedCmPerSec *= BalancePowerScale;
+    LiftCmPerSec *= BalancePowerScale;
+
+    const EFootballContactFoot ContactFoot = ChooseNearestFoot();
+    const FVector FootLocation = GetBallContactLocation(ContactFoot);
+    const bool bKicked = ControlledBall->ApplyKickFromFoot(
+        FootLocation,
+        KickDirection,
+        SpeedCmPerSec,
+        LiftCmPerSec,
+        SpinDegPerSec
+    );
+
+    if (!bKicked)
+    {
+        return false;
+    }
+
+    GetWorldTimerManager().ClearTimer(PendingContactFallbackTimer);
+    GetWorldTimerManager().ClearTimer(BallActionStateTimer);
+    PendingBallAction = EFootballBallAction::None;
+    ActiveBallAction = VisualAction;
+    ActiveContactFoot = ContactFoot;
+    GetWorldTimerManager().SetTimer(
+        BallActionStateTimer,
+        this,
+        &AFootballPlayerCharacter::EndBallActionState,
+        0.62f,
+        false
+    );
+
+    ControlledBall = nullptr;
+    bHasBallControl = false;
+    bIsDribbling = false;
+    BallControlLockout = 0.72f;
+    BallSearchAccumulator = 0.72f;
+    return true;
+}
+
 void AFootballPlayerCharacter::ApplyContestImpact(
     const FVector& ImpactDirection,
     const float ImpulseCmPerSec,

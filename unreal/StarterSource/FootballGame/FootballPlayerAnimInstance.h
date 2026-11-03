@@ -92,4 +92,10 @@ public:
 
     UPROPERTY(BlueprintReadOnly, Category = "Football|AI")
     EFootballAITaskState AITaskState = EFootballAITaskState::Idle;
+
+    UPROPERTY(BlueprintReadOnly, Category = "Football|Tactics")
+    EFootballMatchPhase MatchPhase = EFootballMatchPhase::TransitionToAttack;
+
+    UPROPERTY(BlueprintReadOnly, Category = "Football|Tactics")
+    EFootballTacticalAction TacticalAction = EFootballTacticalAction::None;
 };

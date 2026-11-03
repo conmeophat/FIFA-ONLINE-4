@@ -37,6 +37,8 @@ void UFootballPlayerAnimInstance::NativeUpdateAnimation(const float DeltaSeconds
         ContactFoot = EFootballContactFoot::Right;
         bIsAIControlled = false;
         AITaskState = EFootballAITaskState::Idle;
+        MatchPhase = EFootballMatchPhase::TransitionToAttack;
+        TacticalAction = EFootballTacticalAction::None;
         return;
     }
 
@@ -92,10 +94,14 @@ void UFootballPlayerAnimInstance::NativeUpdateAnimation(const float DeltaSeconds
     {
         bIsAIControlled = true;
         AITaskState = AIController->GetCurrentTaskState();
+        MatchPhase = AIController->GetCurrentMatchPhase();
+        TacticalAction = AIController->GetCurrentTacticalAction();
     }
     else
     {
         bIsAIControlled = false;
         AITaskState = EFootballAITaskState::Idle;
+        MatchPhase = EFootballMatchPhase::TransitionToAttack;
+        TacticalAction = EFootballTacticalAction::None;
     }
 }
