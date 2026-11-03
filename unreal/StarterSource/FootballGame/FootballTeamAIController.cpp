@@ -24,6 +24,8 @@ void AFootballTeamAIController::OnUnPossess()
 {
     CurrentBallCarrier = nullptr;
     CurrentTaskState = EFootballAITaskState::Idle;
+    bHasCachedMoveTarget = false;
+    CachedTeammates.Reset();
     Super::OnUnPossess();
 }
 
@@ -32,12 +34,14 @@ void AFootballTeamAIController::Tick(const float DeltaSeconds)
     Super::Tick(DeltaSeconds);
     ContestCooldown = FMath::Max(0.0f, ContestCooldown - DeltaSeconds);
     DecisionAccumulator += DeltaSeconds;
-    if (DecisionAccumulator < FMath::Max(0.05f, DecisionIntervalSeconds))
+    if (DecisionAccumulator >= FMath::Max(0.05f, DecisionIntervalSeconds))
     {
-        return;
+        DecisionAccumulator = 0.0f;
+        UpdateTeamDecision();
     }
-    DecisionAccumulator = 0.0f;
-    UpdateTeamDecision();
+
+    // Movement input must be supplied every frame; tactical decisions are throttled.
+    ApplyCachedSteering();
 }
 
 void AFootballTeamAIController::GatherFootballers(
@@ -393,21 +397,47 @@ void AFootballTeamAIController::MoveTowards(
     APawn* ControlledPawn = GetPawn();
     if (!IsValid(ControlledPawn))
     {
+        bHasCachedMoveTarget = false;
         return;
     }
 
-    FVector ToTarget = TargetLocation - ControlledPawn->GetActorLocation();
+    CachedMoveTarget = TargetLocation;
+    CachedTeammates.Reset();
+    for (AFootballPlayerCharacter* Teammate : Teammates)
+    {
+        if (IsValid(Teammate))
+        {
+            CachedTeammates.Add(Teammate);
+        }
+    }
+
+    FVector ToTarget = CachedMoveTarget - ControlledPawn->GetActorLocation();
+    ToTarget.Z = 0.0f;
+    bHasCachedMoveTarget = ToTarget.Size() > StopDistanceCm;
+}
+
+void AFootballTeamAIController::ApplyCachedSteering()
+{
+    APawn* ControlledPawn = GetPawn();
+    if (!bHasCachedMoveTarget || !IsValid(ControlledPawn))
+    {
+        return;
+    }
+
+    FVector ToTarget = CachedMoveTarget - ControlledPawn->GetActorLocation();
     ToTarget.Z = 0.0f;
     const float Distance = ToTarget.Size();
     if (Distance <= StopDistanceCm)
     {
+        bHasCachedMoveTarget = false;
         return;
     }
 
     FVector Steering = ToTarget.GetSafeNormal();
     FVector Separation = FVector::ZeroVector;
-    for (AFootballPlayerCharacter* Teammate : Teammates)
+    for (const TWeakObjectPtr<AFootballPlayerCharacter>& TeammatePtr : CachedTeammates)
     {
+        AFootballPlayerCharacter* Teammate = TeammatePtr.Get();
         if (!IsValid(Teammate) || Teammate == ControlledPawn)
         {
             continue;
