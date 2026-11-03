@@ -55,6 +55,23 @@ void AFootballMatchDirector::Tick(const float DeltaSeconds)
         FindMatchBall();
     }
 
+    if (!IsValid(MatchHUD) && GetWorld())
+    {
+        if (APlayerController* PlayerController = GetWorld()->GetFirstPlayerController())
+        {
+            TSubclassOf<UFootballMatchHUDWidget> WidgetClass = MatchHUDWidgetClass;
+            if (!WidgetClass)
+            {
+                WidgetClass = UFootballMatchHUDWidget::StaticClass();
+            }
+            MatchHUD = CreateWidget<UFootballMatchHUDWidget>(PlayerController, WidgetClass);
+            if (IsValid(MatchHUD))
+            {
+                MatchHUD->AddToViewport(20);
+            }
+        }
+    }
+
     if (bClockRunning && IsMatchActive())
     {
         const float MatchDelta = DeltaSeconds * FMath::Max(0.1f, MatchClockRate);
