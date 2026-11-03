@@ -42,7 +42,13 @@
 - [x] v0.4: Anim Notify defers pass / through-ball / shot impulse to the strike frame
 - [x] v0.4: Animation Blueprint variables expose dribbling, action and contact-foot state
 - [ ] Import licensed football animations, configure sockets / Montages and verify timing in Unreal
-- [ ] Match clock, scoreboard UI and restart states
+- [x] v0.8: match clock with configurable half duration, half-time side switch and full-time state
+- [x] v0.8: 22-player test lineup with goalkeeper slots for both teams
+- [x] v0.8: team score tracking and kick-off restart after goals
+- [x] v0.8: throw-in, corner, goal-kick, direct / indirect free-kick and penalty restarts
+- [x] v0.8: basic offside-position snapshot and offence on active ball touch
+- [x] v0.8: goalkeeper positioning, close-range parry and goal-kick distribution
+- [ ] Match clock / scoreboard UI polish, automatic foul detection and complete set-piece animations
 - [ ] Football locomotion animations (jog, sprint, turn, stop, dribble)
 
 ## Milestone 4 — Foot Contact & Animation Engine v0.4
