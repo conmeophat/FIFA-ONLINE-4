@@ -50,6 +50,8 @@ $RequiredFiles = @(
     "FootballTeamAIController.cpp",
     "FootballMatchDirector.h",
     "FootballMatchDirector.cpp",
+    "FootballMatchHUDWidget.h",
+    "FootballMatchHUDWidget.cpp",
     "FootballAIPlayerCharacter.h",
     "FootballAIPlayerCharacter.cpp",
     "AnimNotify_FootballBallContact.h",
@@ -70,7 +72,7 @@ foreach ($FileName in $RequiredFiles) {
 
 # Add runtime module dependencies inside the module constructor.
 $BuildContent = Get-Content -Path $BuildCs -Raw
-$DependenciesToEnsure = @("HTTP", "Json", "JsonUtilities", "InputCore", "PhysicsCore", "AIModule")
+$DependenciesToEnsure = @("HTTP", "Json", "JsonUtilities", "InputCore", "PhysicsCore", "AIModule", "UMG", "Slate", "SlateCore")
 $DependencyPattern = 'PublicDependencyModuleNames\.AddRange\(\s*new\s+string\[\]\s*\{(?<items>[\s\S]*?)\}\s*\);'
 $DependencyMatch = [regex]::Match($BuildContent, $DependencyPattern)
 
@@ -172,7 +174,7 @@ if ($MissingMappings.Count -gt 0) {
 }
 
 Write-Host ""
-Write-Host "Football Match Engine v0.8 source installed." -ForegroundColor Green
+Write-Host "Football Match Engine v0.9 source installed." -ForegroundColor Green
 Write-Host "Project: $($UProject.FullName)"
 Write-Host "Module:  $ModuleName"
 Write-Host "Source:  $ModuleSource"
@@ -187,3 +189,6 @@ Write-Host "5. Assign foot sockets and action montages, then add Football Ball C
 Write-Host "6. Hold Left Control / Gamepad Right Shoulder to brace during a contest."
 Write-Host "7. Run build_player_test_level.py to spawn a human player and seven AI footballers using 4-3-3 slots."
 Write-Host "8. Configure MatchClockRate and HalfTimeBreakSeconds on FPO_Match_Director."
+Write-Host "9. The native match HUD displays TEAM 0 / TEAM 1 score, match clock and period."
+Write-Host "10. Tune shoulder-duel reactions in the Animation Blueprint using bIsInShoulderDuel and ContestReactionStrength."
+Write-Host "11. Import licensed goalkeeper catch / dive / distribution animations; the current catch is physical attachment, not an authored hand animation."
