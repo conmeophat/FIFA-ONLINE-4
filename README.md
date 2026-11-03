@@ -5,7 +5,7 @@
 ## Technology direction
 
 - **Game client:** Unreal Engine 5; C++ and Blueprints handle packaged-game runtime gameplay.
-- **Python:** FastAPI backend, football-data validation/import, management rules, editor automation and developer tools.
+- **Python:** FastAPI backend, football-data validation/import, management rules, Editor automation and developer tools.
 - **First target:** a playable offline prototype with a broadcast-style 3D camera.
 - **Later target:** online sessions after the offline match simulation is stable.
 
@@ -17,23 +17,32 @@ Unreal's Python integration is an Editor scripting environment, not the runtime 
 .
 ├── backend/          # FastAPI service, domain models and tests
 ├── data/fixtures/    # Synthetic development data only
-├── docs/             # Architecture, roadmap, data policy and Windows guides
-├── tools/            # Local run, validation and Unreal source installer
-├── unreal/           # C++ actors, Editor Python builder and setup guide
+├── docs/             # Architecture, roadmap and Windows guides
+├── tools/            # Backend and Unreal source installer scripts
+├── unreal/           # C++ actors, player, Editor Python builders and input config
 └── .github/          # GitHub Actions CI
 ~~~
 
-## Current Unreal stadium milestone
+## Unreal prototype milestones
 
-The repository now contains:
-- A C++ stadium actor that builds a scale-aware pitch, lines, penalty boxes, goal frames, corner flags, stand blockout and floodlight masts.
-- A C++ broadcast camera actor that tracks a target with smooth pan and pitch-boundary clamps.
-- An Unreal Editor Python script that places the actors into the currently open level.
-- A PowerShell installer that copies starter C++ sources into the generated Unreal project and adds missing HTTP/JSON module dependencies.
+### Stadium 3D + broadcast camera
+- Scale-aware pitch, markings, penalty areas, goals, flags, stand blockout and floodlight masts.
+- High sideline broadcast camera actor with smooth tracking and pitch bounds.
+- Unreal Editor Python script to place the actors in the current level.
 
-This is a geometry blockout, not a finished photoreal stadium. The local Unreal project still needs to be generated, compiled and visually checked on the development PC.
+See [Stadium 3D + Broadcast Camera](docs/STADIUM_BROADCAST_CAMERA.md).
 
-See [Stadium 3D + Broadcast Camera guide](docs/STADIUM_BROADCAST_CAMERA.md).
+### Football Player Engine v0.2
+- C++ controllable footballer character with camera-relative movement.
+- Follow camera, mouse/gamepad look, sprint, braking and prototype jump.
+- Primitive mannequin placeholder so the player is visible without importing external art.
+- C++ Animation Blueprint parent exposing Speed, Direction, VerticalSpeed, bIsInAir and bIsSprinting.
+- Editor Python script to spawn and auto-possess a test player.
+- PowerShell installer that copies all C++ starter files, adds missing module dependencies and merges input mappings.
+
+See [Football Player Engine v0.2](docs/PLAYER_ENGINE_V0_2.md).
+
+**Important:** these are development blockouts and starter systems, not a finished photoreal stadium or finished football gameplay. Unreal C++ compilation and visual verification still need to happen on the target Windows machine.
 
 ## Run the Python backend (Windows PowerShell)
 
@@ -83,4 +92,4 @@ The files under data/fixtures are synthetic development fixtures, not real or of
 
 ## Current status
 
-The Python API foundation and stadium/camera C++ starter sources are in the repository. The Unreal project itself must still be generated and compiled in the local Unreal Editor + MSVC environment. A playable football match, official worldwide roster and online mode do not exist yet.
+The repository contains the Python API foundation, stadium/camera C++ starter, player movement and animation C++ starter, Editor Python builders, and an installer. The Unreal project must still be generated, compiled and play-tested in the local Unreal Editor + MSVC environment. No ball control, dribbling, passing, shooting, 11v11 AI, official worldwide roster or online mode is claimed yet.
