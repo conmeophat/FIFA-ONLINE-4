@@ -25,6 +25,8 @@ void UFootballPlayerAnimInstance::NativeUpdateAnimation(const float DeltaSeconds
         bIsOffBalance = false;
         bIsBracing = false;
         bIsContestStunned = false;
+        bIsInShoulderDuel = false;
+        ContestReactionStrength = 0.0f;
         BalanceState = EFootballBalanceState::Stable;
         bHasBallControl = false;
         bIsDribbling = false;
@@ -76,6 +78,8 @@ void UFootballPlayerAnimInstance::NativeUpdateAnimation(const float DeltaSeconds
         bIsOffBalance = Footballer->bIsOffBalance;
         bIsBracing = Footballer->bIsBracing;
         bIsContestStunned = Footballer->bIsContestStunned;
+        bIsInShoulderDuel = Footballer->bIsInShoulderDuel;
+        ContestReactionStrength = Footballer->ContestReactionStrength;
         BalanceState = Footballer->BalanceState;
         TurnAngle = Footballer->GetMovementDirection();
         bHasBallControl = Footballer->bHasBallControl;
