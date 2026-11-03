@@ -37,7 +37,11 @@ $RequiredFiles = @(
     "FootballStadiumActor.h",
     "FootballStadiumActor.cpp",
     "FootballBroadcastCameraActor.h",
-    "FootballBroadcastCameraActor.cpp"
+    "FootballBroadcastCameraActor.cpp",
+    "FootballPlayerCharacter.h",
+    "FootballPlayerCharacter.cpp",
+    "FootballPlayerAnimInstance.h",
+    "FootballPlayerAnimInstance.cpp"
 )
 
 $ApiMacro = $ModuleName.ToUpperInvariant() + "_API"
@@ -91,21 +95,71 @@ else {
 
 Set-Content -Path $BuildCs -Value $BuildContent -Encoding utf8
 
-# Install the Unreal Editor Python level-builder script and adapt the reflected module path.
+# Install Editor Python scripts and adapt reflected class paths to the real module name.
 $PythonContentDir = Join-Path $ProjectRoot "Content\Python"
 New-Item -ItemType Directory -Force -Path $PythonContentDir | Out-Null
-$PythonScript = Get-Content -Path (Join-Path $UnrealRoot "Content\Python\build_stadium_level.py") -Raw
-$PythonScript = $PythonScript.Replace("/Script/FootballGame.", ("/Script/" + $ModuleName + "."))
-Set-Content -Path (Join-Path $PythonContentDir "build_stadium_level.py") -Value $PythonScript -Encoding utf8
+
+foreach ($ScriptName in @("build_stadium_level.py", "build_player_test_level.py")) {
+    $SourceScript = Join-Path $UnrealRoot ("Content\Python\" + $ScriptName)
+    if (-not (Test-Path $SourceScript)) {
+        throw "Unreal Python builder script is missing: $SourceScript"
+    }
+
+    $PythonScript = Get-Content -Path $SourceScript -Raw
+    $PythonScript = $PythonScript.Replace("/Script/FootballGame.", ("/Script/" + $ModuleName + "."))
+    Set-Content -Path (Join-Path $PythonContentDir $ScriptName) -Value $PythonScript -Encoding utf8
+}
+
+# Add legacy input mappings only if the exact mapping is not already present.
+# These mappings support both keyboard/mouse and common XInput-style gamepads.
+$ConfigDir = Join-Path $ProjectRoot "Config"
+New-Item -ItemType Directory -Force -Path $ConfigDir | Out-Null
+$InputConfigPath = Join-Path $ConfigDir "DefaultInput.ini"
+$InputContent = if (Test-Path $InputConfigPath) {
+    Get-Content -Path $InputConfigPath -Raw
+} else {
+    ""
+}
+
+$InputMappings = @(
+    '+AxisMappings=(AxisName="MoveForward",Scale=1.000000,Key=W)',
+    '+AxisMappings=(AxisName="MoveForward",Scale=-1.000000,Key=S)',
+    '+AxisMappings=(AxisName="MoveForward",Scale=1.000000,Key=Gamepad_LeftY)',
+    '+AxisMappings=(AxisName="MoveRight",Scale=1.000000,Key=D)',
+    '+AxisMappings=(AxisName="MoveRight",Scale=-1.000000,Key=A)',
+    '+AxisMappings=(AxisName="MoveRight",Scale=1.000000,Key=Gamepad_LeftX)',
+    '+AxisMappings=(AxisName="Turn",Scale=1.000000,Key=MouseX)',
+    '+AxisMappings=(AxisName="Turn",Scale=1.000000,Key=Gamepad_RightX)',
+    '+AxisMappings=(AxisName="LookUp",Scale=-1.000000,Key=MouseY)',
+    '+AxisMappings=(AxisName="LookUp",Scale=-1.000000,Key=Gamepad_RightY)',
+    '+ActionMappings=(ActionName="Sprint",bShift=False,bCtrl=False,bAlt=False,bCmd=False,Key=LeftShift)',
+    '+ActionMappings=(ActionName="Sprint",bShift=False,bCtrl=False,bAlt=False,bCmd=False,Key=Gamepad_LeftShoulder)',
+    '+ActionMappings=(ActionName="Jump",bShift=False,bCtrl=False,bAlt=False,bCmd=False,Key=SpaceBar)',
+    '+ActionMappings=(ActionName="Jump",bShift=False,bCtrl=False,bAlt=False,bCmd=False,Key=Gamepad_FaceButton_Bottom)'
+)
+
+$MissingMappings = @($InputMappings | Where-Object { -not $InputContent.Contains($_) })
+if ($MissingMappings.Count -gt 0) {
+    $InputAddition = [Environment]::NewLine +
+        "[/Script/Engine.InputSettings]" +
+        [Environment]::NewLine +
+        "; Football Player Engine v0.2 input mappings" +
+        [Environment]::NewLine +
+        ($MissingMappings -join [Environment]::NewLine) +
+        [Environment]::NewLine
+
+    Add-Content -Path $InputConfigPath -Value $InputAddition -Encoding utf8
+}
 
 Write-Host ""
-Write-Host "Football project source installed." -ForegroundColor Green
+Write-Host "Football Player Engine v0.2 source installed." -ForegroundColor Green
 Write-Host "Project: $($UProject.FullName)"
 Write-Host "Module:  $ModuleName"
 Write-Host "Source:  $ModuleSource"
+Write-Host "Player input mappings: checked/installed"
 Write-Host ""
 Write-Host "Next:"
 Write-Host "1. Close Unreal Editor."
 Write-Host "2. Regenerate project files."
 Write-Host "3. Build the Development Editor target in Visual Studio."
-Write-Host "4. Reopen Unreal, save an empty level, then run Content/Python/build_stadium_level.py."
+Write-Host "4. Reopen Unreal, save the stadium level, run build_player_test_level.py, then press Play."
