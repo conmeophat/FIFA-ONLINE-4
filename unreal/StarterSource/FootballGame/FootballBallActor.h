@@ -46,6 +46,9 @@ public:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Football|Pitch", meta = (ClampMin = "1000.0"))
     float PitchHalfLengthCm = 5250.0f;
 
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Football|Pitch", meta = (ClampMin = "1000.0"))
+    float PitchHalfWidthCm = 3400.0f;
+
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Football|Pitch", meta = (ClampMin = "100.0"))
     float GoalWidthCm = 732.0f;
 
@@ -64,11 +67,29 @@ public:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Football|Score")
     int32 NegativeXScore = 0;
 
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Football|Referee")
+    int32 LastTouchTeamId = INDEX_NONE;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Football|Referee")
+    TObjectPtr<AActor> LastTouchActor = nullptr;
+
     UPROPERTY(BlueprintAssignable, Category = "Football|Score")
     FOnFootballGoalScored OnGoalScored;
 
     UFUNCTION(BlueprintCallable, Category = "Football|Ball")
     bool ApplyKick(const FVector& Direction, float SpeedCmPerSec, float LiftCmPerSec, float SpinDegPerSec);
+
+    UFUNCTION(BlueprintCallable, Category = "Football|Referee")
+    void RegisterLastTouch(int32 TeamId, AActor* TouchingActor);
+
+    UFUNCTION(BlueprintCallable, Category = "Football|Referee")
+    void StopAtRestart(const FVector& RestartLocation);
+
+    UFUNCTION(BlueprintCallable, Category = "Football|Goalkeeper")
+    bool TryGoalkeeperParry(
+        const FVector& KeeperLocation, int32 KeeperTeamId, AActor* KeeperActor,
+        int32 KeeperAttackDirectionSign, float ReachCm
+    );
 
     UFUNCTION(BlueprintCallable, Category = "Football|Ball")
     bool ApplyKickFromFoot(
@@ -102,6 +123,7 @@ private:
     FVector PreviousBallLocation = FVector::ZeroVector;
     FTimerHandle GoalResetTimer;
     bool bWaitingForGoalReset = false;
+    float LastGoalkeeperParryTime = -1000.0f;
 
     void CheckForGoal();
     bool IsInsideGoalMouth(const FVector& BallLocation) const;
