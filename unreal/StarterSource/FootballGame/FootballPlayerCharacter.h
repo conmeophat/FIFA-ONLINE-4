@@ -86,6 +86,21 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Football|Animation")
     TObjectPtr<UAnimMontage> ShotMontage = nullptr;
 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Football|Animation|Contact")
+    TObjectPtr<UAnimMontage> ShoulderDuelMontage = nullptr;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Football|Animation|Contact")
+    TObjectPtr<UAnimMontage> FoulReactionMontage = nullptr;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Football|Animation|Goalkeeper")
+    TObjectPtr<UAnimMontage> GoalkeeperCatchMontage = nullptr;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Football|Animation|Goalkeeper")
+    TObjectPtr<UAnimMontage> GoalkeeperDiveMontage = nullptr;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Football|Animation|Goalkeeper")
+    TObjectPtr<UAnimMontage> GoalkeeperDistributionMontage = nullptr;
+
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Football|Animation")
     FName LeftFootContactSocketName = TEXT("ball_contact_l");
 
@@ -170,6 +185,9 @@ public:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Football|Animation")
     EFootballContactFoot ActiveContactFoot = EFootballContactFoot::Right;
 
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Football|Animation")
+    EFootballAnimationCue ActiveAnimationCue = EFootballAnimationCue::None;
+
     UFUNCTION(BlueprintPure, Category = "Football|Animation")
     float GetHorizontalSpeed() const;
 
@@ -182,6 +200,21 @@ public:
 
     UFUNCTION(BlueprintPure, Category = "Football|Ball")
     FVector GetBallContactLocation(EFootballContactFoot ContactFoot) const;
+
+    UFUNCTION(BlueprintCallable, Category = "Football|Animation")
+    void PlayShoulderDuelMontage();
+
+    UFUNCTION(BlueprintCallable, Category = "Football|Animation")
+    void PlayFoulReactionMontage();
+
+    UFUNCTION(BlueprintCallable, Category = "Football|Animation")
+    void PlayGoalkeeperCatchMontage();
+
+    UFUNCTION(BlueprintCallable, Category = "Football|Animation")
+    void PlayGoalkeeperDiveMontage();
+
+    UFUNCTION(BlueprintCallable, Category = "Football|Animation")
+    void PlayGoalkeeperDistributionMontage();
 
     /**
      * Called by an opponent / overlap / tackle system when a contest contact occurs.
@@ -244,6 +277,7 @@ private:
     EFootballContactFoot PendingContactFoot = EFootballContactFoot::Right;
     FTimerHandle PendingContactFallbackTimer;
     FTimerHandle BallActionStateTimer;
+    FTimerHandle AnimationCueTimer;
 
     float BallSearchAccumulator = 0.0f;
     float BallControlLockout = 0.0f;
@@ -276,6 +310,8 @@ private:
     void ExecutePendingBallAction(EFootballContactFoot ContactFoot);
     void OnBallContactFallback();
     void EndBallActionState();
+    void PlayConfiguredMontage(UAnimMontage* Montage, EFootballAnimationCue Cue);
+    void ClearAnimationCue();
 
     void RefreshAppearance();
     void UpdateSprintSpeed();
