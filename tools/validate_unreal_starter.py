@@ -72,13 +72,11 @@ REQUIRED_SYMBOLS = {
     "unreal/StarterSource/FootballGame/FootballPlayerCharacter.h": [
         "TeamId", "AttackDirectionSign", "TeamRole",
     ],
-    "unreal/StarterSource/FootballGame/FootballPlayerAnimInstance.h": [
-        "bIsAIControlled", "AITaskState",
-    ],
     "unreal/StarterSource/FootballGame/FootballPlayerAnimInstance.cpp": [
         "AFootballTeamAIController", "GetCurrentTaskState",
     ],
     "unreal/StarterSource/FootballGame/FootballPlayerAnimInstance.h": [
+        "bIsAIControlled", "AITaskState",
         "MovementAcceleration", "TurnAngle", "bIsChangingDirection",
         "Balance", "bIsOffBalance", "bIsBracing", "bIsContestStunned",
         "EFootballBalanceState",
