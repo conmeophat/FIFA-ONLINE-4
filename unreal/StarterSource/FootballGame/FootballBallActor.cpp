@@ -1,5 +1,6 @@
 #include "FootballBallActor.h"
 
+#include "FootballPlayerCharacter.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
@@ -58,7 +59,7 @@ void AFootballBallActor::BeginPlay()
 void AFootballBallActor::Tick(const float DeltaSeconds)
 {
     Super::Tick(DeltaSeconds);
-    if (!bWaitingForGoalReset)
+    if (!bWaitingForGoalReset && !bIsHeldByGoalkeeper)
     {
         CheckForGoal();
     }
@@ -193,6 +194,14 @@ void AFootballBallActor::StopAtRestart(const FVector& RestartLocation)
     if (!PhysicsSphere) return;
     GetWorldTimerManager().ClearTimer(GoalResetTimer);
     bWaitingForGoalReset = false;
+    if (GetAttachParentActor())
+    {
+        DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+    }
+    GoalkeeperHolder.Reset();
+    bIsHeldByGoalkeeper = false;
+    PhysicsSphere->SetCollisionProfileName(TEXT("PhysicsActor"));
+    PhysicsSphere->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
     PhysicsSphere->SetSimulatePhysics(true);
     PhysicsSphere->SetPhysicsLinearVelocity(FVector::ZeroVector, false, NAME_None);
     PhysicsSphere->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector, false, NAME_None);
@@ -207,7 +216,7 @@ bool AFootballBallActor::TryGoalkeeperParry(
     const int32 KeeperAttackDirectionSign, const float ReachCm
 )
 {
-    if (!PhysicsSphere || !PhysicsSphere->IsSimulatingPhysics() || !GetWorld()) return false;
+    if (!PhysicsSphere || !PhysicsSphere->IsSimulatingPhysics() || !GetWorld() || bIsHeldByGoalkeeper) return false;
     const FVector BallLocation = GetActorLocation();
     const FVector BallVelocity = PhysicsSphere->GetPhysicsLinearVelocity(NAME_None);
     const int32 Sign = KeeperAttackDirectionSign >= 0 ? 1 : -1;
@@ -232,6 +241,112 @@ bool AFootballBallActor::TryGoalkeeperParry(
     );
     PhysicsSphere->SetPhysicsLinearVelocity(ParryVelocity, false, NAME_None);
     RegisterLastTouch(KeeperTeamId, KeeperActor);
+    return true;
+}
+
+bool AFootballBallActor::TryGoalkeeperCatch(
+    const FVector& KeeperLocation,
+    const int32 KeeperTeamId,
+    AActor* KeeperActor,
+    const int32 KeeperAttackDirectionSign,
+    const float ReachCm,
+    const float MaxIncomingSpeedCmPerSec
+)
+{
+    if (!PhysicsSphere || !PhysicsSphere->IsSimulatingPhysics() ||
+        !IsValid(KeeperActor) || !GetWorld() || bIsHeldByGoalkeeper)
+    {
+        return false;
+    }
+
+    const FVector BallLocation = GetActorLocation();
+    const FVector BallVelocity = PhysicsSphere->GetPhysicsLinearVelocity(NAME_None);
+    const int32 Sign = KeeperAttackDirectionSign >= 0 ? 1 : -1;
+    const float OwnGoalX = -static_cast<float>(Sign) * PitchHalfLengthCm;
+    const bool bInsideOwnArea =
+        FMath::Abs(BallLocation.X - OwnGoalX) <= 2050.0f &&
+        FMath::Abs(BallLocation.Y) <= 2450.0f &&
+        BallLocation.Z <= 260.0f;
+    const bool bMovingTowardGoal = BallVelocity.X * -static_cast<float>(Sign) > 70.0f;
+    const float Speed = BallVelocity.Size();
+    if (!bInsideOwnArea ||
+        FVector::Dist(KeeperLocation, BallLocation) > FMath::Max(60.0f, ReachCm) ||
+        Speed > FMath::Max(250.0f, MaxIncomingSpeedCmPerSec) ||
+        (!bMovingTowardGoal && Speed > 420.0f))
+    {
+        return false;
+    }
+
+    const float Now = GetWorld()->GetTimeSeconds();
+    if (Now - LastGoalkeeperCatchTime < 0.45f)
+    {
+        return false;
+    }
+    LastGoalkeeperCatchTime = Now;
+
+    PhysicsSphere->SetPhysicsLinearVelocity(FVector::ZeroVector, false, NAME_None);
+    PhysicsSphere->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector, false, NAME_None);
+    PhysicsSphere->SetSimulatePhysics(false);
+    PhysicsSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    AttachToComponent(KeeperActor->GetRootComponent(), FAttachmentTransformRules::KeepWorldTransform);
+    SetActorRelativeLocation(FVector(44.0f, 0.0f, 78.0f));
+    GoalkeeperHolder = KeeperActor;
+    bIsHeldByGoalkeeper = true;
+    RegisterLastTouch(KeeperTeamId, KeeperActor);
+    return true;
+}
+
+bool AFootballBallActor::IsHeldByGoalkeeper(const AActor* KeeperActor) const
+{
+    return bIsHeldByGoalkeeper && GoalkeeperHolder.Get() == KeeperActor;
+}
+
+bool AFootballBallActor::ReleaseFromGoalkeeper(
+    AActor* KeeperActor,
+    const FVector& TargetLocation,
+    const float SpeedCmPerSec,
+    const float LiftCmPerSec,
+    const float SpinDegPerSec
+)
+{
+    if (!IsValid(KeeperActor) || !IsHeldByGoalkeeper(KeeperActor) || !PhysicsSphere)
+    {
+        return false;
+    }
+
+    const FVector Direction = (TargetLocation - GetActorLocation()).GetSafeNormal2D();
+    if (Direction.IsNearlyZero())
+    {
+        return false;
+    }
+
+    DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+    GoalkeeperHolder.Reset();
+    bIsHeldByGoalkeeper = false;
+    SetActorLocation(
+        KeeperActor->GetActorLocation() + KeeperActor->GetActorForwardVector() * 58.0f +
+        FVector(0.0f, 0.0f, 68.0f),
+        false, nullptr, ETeleportType::TeleportPhysics
+    );
+    PhysicsSphere->SetCollisionProfileName(TEXT("PhysicsActor"));
+    PhysicsSphere->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+    PhysicsSphere->SetSimulatePhysics(true);
+    PhysicsSphere->SetPhysicsLinearVelocity(FVector::ZeroVector, false, NAME_None);
+    PhysicsSphere->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector, false, NAME_None);
+    const FVector Impulse = Direction * FMath::Max(0.0f, SpeedCmPerSec) +
+        FVector::UpVector * FMath::Max(0.0f, LiftCmPerSec);
+    PhysicsSphere->AddImpulse(Impulse, NAME_None, true);
+    if (!FMath::IsNearlyZero(SpinDegPerSec))
+    {
+        PhysicsSphere->SetPhysicsAngularVelocityInDegrees(
+            FVector(0.0f, -SpinDegPerSec, 0.0f), false, NAME_None
+        );
+    }
+
+    if (const AFootballPlayerCharacter* Footballer = Cast<AFootballPlayerCharacter>(KeeperActor))
+    {
+        RegisterLastTouch(Footballer->TeamId, KeeperActor);
+    }
     return true;
 }
 
