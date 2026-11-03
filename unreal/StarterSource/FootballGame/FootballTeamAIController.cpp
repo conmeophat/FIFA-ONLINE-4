@@ -590,9 +590,53 @@ void AFootballTeamAIController::UpdateTeamDecision()
                             static_cast<float>(AttackDirectionSign);
                         if (Progress > BestProgress) { BestProgress = Progress; Receiver = Teammate; }
                     }
-                    const FVector Target = IsValid(Receiver)
+                    FVector Target = IsValid(Receiver)
                         ? Receiver->GetActorLocation() + Receiver->GetVelocity() * 0.25f
                         : BallLocation + FVector(static_cast<float>(AttackDirectionSign) * 1450.0f, 0.0f, 0.0f);
+
+                    const EFootballRestartType RestartType = MatchDirector->GetRestartType();
+                    const FVector AttackingGoal(
+                        static_cast<float>(AttackDirectionSign) * FieldHalfLengthCm,
+                        0.0f,
+                        BallLocation.Z
+                    );
+                    switch (RestartType)
+                    {
+                    case EFootballRestartType::KickOff:
+                        Target = IsValid(Receiver)
+                            ? Receiver->GetActorLocation() + Receiver->GetVelocity() * 0.18f
+                            : BallLocation + FVector(static_cast<float>(AttackDirectionSign) * 720.0f, 0.0f, 0.0f);
+                        break;
+                    case EFootballRestartType::CornerKick:
+                        Target = FVector(
+                            AttackingGoal.X - static_cast<float>(AttackDirectionSign) * 1050.0f,
+                            FMath::Clamp(-BallLocation.Y * 0.22f, -520.0f, 520.0f),
+                            BallLocation.Z + 40.0f
+                        );
+                        break;
+                    case EFootballRestartType::DirectFreeKick:
+                    case EFootballRestartType::IndirectFreeKick:
+                        Target = FVector::Dist2D(BallLocation, AttackingGoal) <= 2850.0f
+                            ? AttackingGoal
+                            : FVector(
+                                AttackingGoal.X - static_cast<float>(AttackDirectionSign) * 1250.0f,
+                                FMath::Clamp(BallLocation.Y * 0.18f, -450.0f, 450.0f),
+                                BallLocation.Z + 30.0f
+                            );
+                        break;
+                    case EFootballRestartType::GoalKick:
+                        Target = IsValid(Receiver)
+                            ? Receiver->GetActorLocation() + Receiver->GetVelocity() * 0.35f
+                            : BallLocation + FVector(static_cast<float>(AttackDirectionSign) * 2200.0f, 1250.0f, 0.0f);
+                        break;
+                    case EFootballRestartType::ThrowIn:
+                        Target = IsValid(Receiver)
+                            ? Receiver->GetActorLocation() + Receiver->GetVelocity() * 0.28f
+                            : BallLocation + FVector(static_cast<float>(AttackDirectionSign) * 620.0f, 0.0f, 0.0f);
+                        break;
+                    default:
+                        break;
+                    }
 
                     EFootballTacticalAction RestartAction = EFootballTacticalAction::ShortPass;
                     switch (MatchDirector->GetRestartType())
@@ -617,8 +661,26 @@ void AFootballTeamAIController::UpdateTeamDecision()
             }
             else
             {
-                CurrentTaskState = EFootballAITaskState::RecoverShape;
-                MoveTowards(FindFormationTarget(BallLocation, SelfPlayer, false), Teammates);
+                const EFootballRestartType RestartType = MatchDirector->GetRestartType();
+                if (RestartType == EFootballRestartType::CornerKick ||
+                    RestartType == EFootballRestartType::DirectFreeKick ||
+                    RestartType == EFootballRestartType::IndirectFreeKick)
+                {
+                    const float GoalX = static_cast<float>(AttackDirectionSign) * FieldHalfLengthCm;
+                    const float Lane = static_cast<float>((SelfPlayer->SquadSlotIndex % 5) - 2) * 360.0f;
+                    const FVector BoxRun(
+                        GoalX - static_cast<float>(AttackDirectionSign) * (520.0f + (SelfPlayer->SquadSlotIndex % 3) * 260.0f),
+                        Lane,
+                        SelfPlayer->GetActorLocation().Z
+                    );
+                    CurrentTaskState = EFootballAITaskState::SupportRun;
+                    MoveTowards(BoxRun, Teammates);
+                }
+                else
+                {
+                    CurrentTaskState = EFootballAITaskState::RecoverShape;
+                    MoveTowards(FindFormationTarget(BallLocation, SelfPlayer, false), Teammates);
+                }
             }
         }
         else
@@ -654,6 +716,53 @@ void AFootballTeamAIController::UpdateTeamDecision()
             CurrentTaskState = EFootballAITaskState::GoalkeeperDive;
             bHasCachedMoveTarget = false;
             return;
+        }
+
+        if (Ball->TryGoalkeeperCatch(
+            SelfPlayer->GetActorLocation(), TeamId, SelfPlayer, AttackDirectionSign, 190.0f, 1450.0f
+        ))
+        {
+            CurrentTaskState = EFootballAITaskState::GoalkeeperCollect;
+            bHasCachedMoveTarget = false;
+            return;
+        }
+
+        if (Ball->IsHeldByGoalkeeper(SelfPlayer))
+        {
+            AFootballPlayerCharacter* Outlet = nullptr;
+            float BestOutletScore = -TNumericLimits<float>::Max();
+            for (AFootballPlayerCharacter* Teammate : Teammates)
+            {
+                if (!IsValid(Teammate) || Teammate == SelfPlayer) continue;
+                const float ForwardRun =
+                    (Teammate->GetActorLocation().X - SelfPlayer->GetActorLocation().X) *
+                    static_cast<float>(AttackDirectionSign);
+                const float WideOutlet = FMath::Abs(Teammate->GetActorLocation().Y) * 0.18f;
+                const float Score = ForwardRun + WideOutlet -
+                    FVector::Dist2D(SelfPlayer->GetActorLocation(), Teammate->GetActorLocation()) * 0.12f;
+                if (Score > BestOutletScore)
+                {
+                    BestOutletScore = Score;
+                    Outlet = Teammate;
+                }
+            }
+
+            const FVector DistributionTarget = IsValid(Outlet)
+                ? Outlet->GetActorLocation() + Outlet->GetVelocity() * 0.35f
+                : SelfPlayer->GetActorLocation() +
+                    FVector(static_cast<float>(AttackDirectionSign) * 2250.0f, 1150.0f, 0.0f);
+            if (Ball->ReleaseFromGoalkeeper(SelfPlayer, DistributionTarget, 2350.0f, 630.0f, 110.0f))
+            {
+                CurrentTaskState = EFootballAITaskState::GoalkeeperDistribute;
+                CurrentTacticalAction = EFootballTacticalAction::GoalKick;
+                CurrentTacticalTarget = Outlet;
+                if (IsValid(MatchDirector))
+                {
+                    MatchDirector->NotifyBallPlayed(SelfPlayer, EFootballTacticalAction::GoalKick);
+                }
+                bHasCachedMoveTarget = false;
+                return;
+            }
         }
 
         if (bBallHasCarrier && ClosestToBall == SelfPlayer && SelfPlayer->bHasBallControl)
