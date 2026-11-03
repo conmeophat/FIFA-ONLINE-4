@@ -58,8 +58,13 @@ def main():
     ai_character_class = load_class("/Script/FootballGame.FootballAIPlayerCharacter")
     ball_class = load_class("/Script/FootballGame.FootballBallActor")
     match_class = load_class("/Script/FootballGame.FootballMatchDirector")
+    camera_class = load_class("/Script/FootballGame.FootballBroadcastCameraActor")
+    referee_class = load_class("/Script/FootballGame.FootballRefereeActor")
 
-    labels_to_remove = ["FPO_Player_Test", "FPO_Ball_Test", "FPO_Match_Director"]
+    labels_to_remove = [
+        "FPO_Player_Test", "FPO_Ball_Test", "FPO_Match_Director",
+        "FPO_Broadcast_Camera", "FPO_Referee",
+    ]
     for team_id in (0, 1):
         for slot in range(11):
             labels_to_remove.append(f"FPO_AI_T{team_id}_S{slot:02d}")
@@ -124,26 +129,46 @@ def main():
     match.set_editor_property("match_clock_rate", 30.0)
     match.set_editor_property("half_time_break_seconds", 8.0)
 
-    for actor in subsystem.get_all_level_actors():
-        if actor and actor.get_actor_label() == "FPO_Broadcast_Camera":
-            try:
-                actor.set_editor_property(
-                    "b_activate_as_player_view_on_begin_play", False
-                )
-            except Exception as exc:
-                unreal.log_warning(
-                    f"Could not disable broadcast camera auto-activation: {exc}"
-                )
+    # Broadcast camera follows the live ball from a high sideline TV position.
+    camera = subsystem.spawn_actor_from_class(
+        camera_class,
+        unreal.Vector(0.0, -9900.0, 5200.0),
+        unreal.Rotator(0.0, 0.0, 0.0),
+        False,
+    )
+    if camera is None:
+        raise RuntimeError("Could not spawn FootballBroadcastCameraActor.")
+    camera.set_actor_label("FPO_Broadcast_Camera")
+    camera.set_editor_property("tracked_actor", ball)
+    camera.set_editor_property("b_activate_as_player_view_on_begin_play", True)
+    camera.set_editor_property("position_interp_speed", 2.4)
+    camera.set_editor_property("rotation_interp_speed", 4.0)
+    camera.set_editor_property("field_of_view", 44.0)
+
+    referee = subsystem.spawn_actor_from_class(
+        referee_class,
+        unreal.Vector(-350.0, -820.0, 100.0),
+        unreal.Rotator(0.0, 0.0, 0.0),
+        False,
+    )
+    if referee is None:
+        raise RuntimeError("Could not spawn FootballRefereeActor.")
+    referee.set_actor_label("FPO_Referee")
+    referee.set_editor_property("tracked_ball", ball)
+    referee.set_editor_property("b_auto_track_ball", True)
 
     if not unreal.EditorLoadingAndSavingUtils.save_current_level():
         unreal.log_warning("Could not auto-save level. Save it manually.")
 
-    unreal.log("Football Match Engine v0.9: 11v11 match with player duels, goalkeeper catch/hold and set-piece AI.")
+    unreal.log("Football Match Engine v1.0: 11v11 match, referee, substitutions, foul review hooks and broadcast TV camera.")
     unreal.log("Both teams use the 4-3-3 default with goalkeeper slots at SquadSlotIndex 0.")
     unreal.log("Match Director handles clock, score, kick-offs, throw-ins, corners, goal kicks, free kicks and offside.")
     unreal.log("Goalkeepers position, parry, catch/hold the ball, and distribute with a physical long kick.")
     unreal.log("Native match HUD automatically displays team score, match clock and half/full-time state.")
-    unreal.log("Shoulder-duel state is exposed to the Animation Blueprint; assign licensed reaction and contact clips for final motion.")
+    unreal.log("Shoulder, foul-reaction and goalkeeper animation cues are exposed; assign licensed Montages in the player defaults.")
+    unreal.log("Automatic referee fouls are conservative: high-speed contacts involving a ball carrier; other referee decisions remain Blueprint-callable.")
+    unreal.log("Use MatchDirector.RequestSubstitution(PlayerOut, ReplacementClass) for a substitution; default limit is five per team.")
+    unreal.log("Broadcast camera follows the live ball; referee proxy follows play without blocking character movement.")
     unreal.log("MatchClockRate=30: one game-minute passes in two real seconds; adjust FPO_Match_Director to change pacing.")
 
 
