@@ -17,6 +17,15 @@ void UFootballPlayerAnimInstance::NativeUpdateAnimation(const float DeltaSeconds
         bIsInAir = false;
         bIsSprinting = false;
         bHasMovementInput = false;
+        bHasBallControl = false;
+        bIsDribbling = false;
+        bIsBallActionActive = false;
+        bIsPassing = false;
+        bIsThroughBall = false;
+        bIsShooting = false;
+        bIsUsingLeftFoot = false;
+        BallAction = EFootballBallAction::None;
+        ContactFoot = EFootballContactFoot::Right;
         return;
     }
 
@@ -48,5 +57,15 @@ void UFootballPlayerAnimInstance::NativeUpdateAnimation(const float DeltaSeconds
     if (const AFootballPlayerCharacter* Footballer = Cast<AFootballPlayerCharacter>(Pawn))
     {
         bIsSprinting = Footballer->bIsSprinting;
+        bHasBallControl = Footballer->bHasBallControl;
+        bIsDribbling = Footballer->bIsDribbling;
+        BallAction = Footballer->ActiveBallAction;
+        ContactFoot = Footballer->ActiveContactFoot;
+
+        bIsBallActionActive = BallAction != EFootballBallAction::None;
+        bIsPassing = BallAction == EFootballBallAction::ShortPass;
+        bIsThroughBall = BallAction == EFootballBallAction::ThroughBall;
+        bIsShooting = BallAction == EFootballBallAction::Shot;
+        bIsUsingLeftFoot = ContactFoot == EFootballContactFoot::Left;
     }
 }

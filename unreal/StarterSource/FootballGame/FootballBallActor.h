@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "TimerManager.h"
 #include "FootballBallActor.generated.h"
 
 class UPhysicalMaterial;
@@ -51,6 +52,12 @@ public:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Football|Pitch", meta = (ClampMin = "100.0"))
     float GoalHeightCm = 244.0f;
 
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Football|Ball Control", meta = (ClampMin = "1.0"))
+    float FootTouchRangeCm = 125.0f;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Football|Ball Control", meta = (ClampMin = "1.0"))
+    float KickContactRangeCm = 150.0f;
+
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Football|Score")
     int32 PositiveXScore = 0;
 
@@ -63,7 +70,24 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Football|Ball")
     bool ApplyKick(const FVector& Direction, float SpeedCmPerSec, float LiftCmPerSec, float SpinDegPerSec);
 
-    /** Velocity-assisted close control; the ball remains a simulated rigid body. */
+    UFUNCTION(BlueprintCallable, Category = "Football|Ball")
+    bool ApplyKickFromFoot(
+        const FVector& FootLocation,
+        const FVector& Direction,
+        float SpeedCmPerSec,
+        float LiftCmPerSec,
+        float SpinDegPerSec
+    );
+
+    /** Apply one physical close-control touch from the animated foot socket. */
+    UFUNCTION(BlueprintCallable, Category = "Football|Ball")
+    bool ApplyFootTouch(
+        const FVector& FootLocation,
+        const FVector& PlayerForward,
+        const FVector& PlayerVelocity
+    );
+
+    /** Kept for compatibility with the v0.3 API. */
     UFUNCTION(BlueprintCallable, Category = "Football|Ball")
     void ApplyDribbleControl(const FVector& TargetLocation, const FVector& PlayerVelocity, float DeltaSeconds);
 

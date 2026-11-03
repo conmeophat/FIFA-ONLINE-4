@@ -1,23 +1,27 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "FootballGameplayTypes.h"
 #include "GameFramework/Character.h"
+#include "TimerManager.h"
 #include "FootballPlayerCharacter.generated.h"
 
 class AFootballBallActor;
+class UAnimInstance;
+class UAnimMontage;
 class UCameraComponent;
 class UMaterialInterface;
 class USkeletalMesh;
 class USpringArmComponent;
 class UStaticMesh;
 class UStaticMeshComponent;
-class UAnimInstance;
 
 /**
- * First controllable footballer prototype.
+ * Controllable footballer with socket-driven ball contacts.
  *
- * Input is camera-relative (controller yaw). A temporary primitive mannequin is
- * shown until a licensed/imported skeletal mesh is assigned in the editor.
+ * The contact socket names are editable because imported skeletons use different
+ * naming conventions. If no socket exists, a conservative capsule-relative
+ * fallback is used so the development mannequin remains playable.
  */
 UCLASS(Blueprintable)
 class FOOTBALLGAME_API AFootballPlayerCharacter : public ACharacter
@@ -58,29 +62,51 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Football|Appearance")
     TSubclassOf<UAnimInstance> PlayerAnimationBlueprint;
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Football|Appearance")
-    FVector SkeletalMeshRelativeLocation = FVector(0.0f, 0.0f, -90.0f);
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Football|Animation")
+    TObjectPtr<UAnimMontage> PassMontage = nullptr;
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Football|Appearance")
-    FRotator SkeletalMeshRelativeRotation = FRotator(0.0f, -90.0f, 0.0f);
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Football|Animation")
+    TObjectPtr<UAnimMontage> ThroughBallMontage = nullptr;
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Football|Appearance")
-    TObjectPtr<UMaterialInterface> ProxyKitMaterial = nullptr;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Football|Animation")
+    TObjectPtr<UAnimMontage> ShotMontage = nullptr;
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Football|Appearance")
-    TObjectPtr<UMaterialInterface> ProxyShortsMaterial = nullptr;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Football|Animation")
+    FName LeftFootContactSocketName = TEXT("ball_contact_l");
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Football|Appearance")
-    TObjectPtr<UMaterialInterface> ProxyBootsMaterial = nullptr;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Football|Animation")
+    FName RightFootContactSocketName = TEXT("ball_contact_r");
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Football|Animation", meta = (ClampMin = "0.0"))
+    float ActionContactFallbackDelay = 0.22f;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Football|Movement")
     bool bIsSprinting = false;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Football|Ball Control")
+    bool bHasBallControl = false;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Football|Ball Control")
+    bool bIsDribbling = false;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Football|Animation")
+    EFootballBallAction ActiveBallAction = EFootballBallAction::None;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Football|Animation")
+    EFootballContactFoot ActiveContactFoot = EFootballContactFoot::Right;
 
     UFUNCTION(BlueprintPure, Category = "Football|Animation")
     float GetHorizontalSpeed() const;
 
     UFUNCTION(BlueprintPure, Category = "Football|Animation")
     float GetMovementDirection() const;
+
+    /** Called by UAnimNotify_FootballBallContact on the montage's strike frame. */
+    UFUNCTION(BlueprintCallable, Category = "Football|Ball")
+    void HandleBallContactNotify(EFootballContactFoot ContactFoot);
+
+    UFUNCTION(BlueprintPure, Category = "Football|Ball")
+    FVector GetBallContactLocation(EFootballContactFoot ContactFoot) const;
 
 protected:
     virtual void OnConstruction(const FTransform& Transform) override;
@@ -118,24 +144,41 @@ private:
     UPROPERTY(Transient)
     TObjectPtr<UStaticMesh> ProxyCylinderMesh;
 
+    UPROPERTY(Transient)
+    TObjectPtr<AFootballBallActor> ControlledBall = nullptr;
+
+    EFootballBallAction PendingBallAction = EFootballBallAction::None;
+    EFootballContactFoot PendingContactFoot = EFootballContactFoot::Right;
+    FTimerHandle PendingContactFallbackTimer;
+    FTimerHandle BallActionStateTimer;
+
+    float BallSearchAccumulator = 0.0f;
+    float BallControlLockout = 0.0f;
+    float DribbleTouchAccumulator = 0.0f;
+
+    EFootballContactFoot LastDribbleFoot = EFootballContactFoot::Right;
+
     void MoveForward(float Value);
     void MoveRight(float Value);
     void StartSprint();
     void StopSprint();
     void StartJump();
     void StopJump();
+
     void StartPass();
     void StartThroughBall();
     void StartShot();
+
+    void QueueBallAction(EFootballBallAction Action);
+    float PlayBallActionMontage(EFootballBallAction Action);
+    UAnimMontage* GetBallActionMontage(EFootballBallAction Action) const;
+    EFootballContactFoot ChooseNearestFoot() const;
     void RefreshNearbyBall();
     void UpdateBallControl(float DeltaSeconds);
-    void TryKickBall(float SpeedCmPerSec, float LiftCmPerSec, float SpinDegPerSec);
+    void ExecutePendingBallAction(EFootballContactFoot ContactFoot);
+    void OnBallContactFallback();
+    void EndBallActionState();
 
-    UPROPERTY(Transient)
-    TObjectPtr<AFootballBallActor> ControlledBall = nullptr;
-
-    float BallSearchAccumulator = 0.0f;
-    float BallControlLockout = 0.0f;
     void RefreshAppearance();
     void UpdateSprintSpeed();
 };

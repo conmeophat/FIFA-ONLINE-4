@@ -38,23 +38,35 @@
 - [x] Short pass, through ball and lifted shot actions
 - [x] Goal-line crossing detection, score counters and Blueprint goal event
 - [x] Editor Python test-level builder spawns one player and one ball
-- [ ] Literal foot-socket touches and ball-contact animations
+- [x] v0.4: left/right foot sockets, nearest-foot selection and alternating dribble touches
+- [x] v0.4: Anim Notify defers pass / through-ball / shot impulse to the strike frame
+- [x] v0.4: Animation Blueprint variables expose dribbling, action and contact-foot state
+- [ ] Import licensed football animations, configure sockets / Montages and verify timing in Unreal
 - [ ] Match clock, scoreboard UI and restart states
 - [ ] Football locomotion animations (jog, sprint, turn, stop, dribble)
 
-## Milestone 4 — Offline match slice
+## Milestone 4 — Foot Contact & Animation Engine v0.4
+- [x] Configurable left/right ball-contact socket names with prototype fallback positions
+- [x] Alternating left/right dribble contact and nearest-foot action selection
+- [x] Native Anim Notify forwards the kick-frame contact event to the footballer
+- [x] Pass / through-ball / shot Montages are configurable per player actor
+- [x] Animation Blueprint exposes ball-control and ball-action state variables
+- [ ] Import licensed character animation clips, create Montages and place strike notifies
+- [ ] Tune foot socket placement and verify animation timing in local Unreal playtests
+
+## Milestone 5 — Offline match slice
 - [ ] Add goalkeeper and simple teammate/opponent AI
 - [ ] Build restart states (kick-off, goal, throw-in, corner, free kick)
 - [ ] Add substitution and match summary
 - [ ] Profile CPU/GPU and validate stable frame pacing
 
-## Milestone 5 — Football management
+## Milestone 6 — Football management
 - [ ] Connect Unreal to the Python catalogue API
 - [ ] Add squads, formations, player positions and team tactics
 - [ ] Add local saves and career progression
 - [ ] Introduce a licensed, documented real-world data provider only after legal and schema review
 
-## Milestone 6 — Online foundation
+## Milestone 7 — Online foundation
 - [ ] Design account/session services and an authoritative match server
 - [ ] Implement matchmaking and reconnect handling
 - [ ] Add server-side validation, rate limits, logging and anti-cheat controls

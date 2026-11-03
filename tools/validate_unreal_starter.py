@@ -20,34 +20,53 @@ REQUIRED_FILES = [
     "unreal/StarterSource/FootballGame/FootballPlayerAnimInstance.cpp",
     "unreal/StarterSource/FootballGame/FootballBallActor.h",
     "unreal/StarterSource/FootballGame/FootballBallActor.cpp",
+    "unreal/StarterSource/FootballGame/FootballGameplayTypes.h",
+    "unreal/StarterSource/FootballGame/AnimNotify_FootballBallContact.h",
+    "unreal/StarterSource/FootballGame/AnimNotify_FootballBallContact.cpp",
     "unreal/Content/Python/build_stadium_level.py",
     "unreal/Content/Python/build_player_test_level.py",
     "unreal/Config/DefaultInput.ini",
     "tools/install_unreal_source.ps1",
     "docs/PLAYER_ENGINE_V0_2.md",
     "docs/FOOTBALL_BALL_ENGINE_V0_3.md",
+    "docs/FOOTBALL_CONTACT_ANIMATION_V0_4.md",
 ]
 
 REQUIRED_SYMBOLS = {
     "unreal/StarterSource/FootballGame/FootballBallActor.h": [
-        "PhysicsSphere", "BallMassKg", "OnGoalScored", "ApplyKick", "ApplyDribbleControl",
+        "PhysicsSphere", "BallMassKg", "OnGoalScored", "ApplyKick",
+        "ApplyKickFromFoot", "ApplyFootTouch",
     ],
     "unreal/StarterSource/FootballGame/FootballBallActor.cpp": [
-        "SetSimulatePhysics(true)", "SetMassOverrideInKg", "RegisterGoal",
-        "PitchHalfLengthCm", "AddImpulse",
+        "ApplyKickFromFoot", "ApplyFootTouch", "FootTouchRangeCm",
+        "KickContactRangeCm", "RegisterGoal",
+    ],
+    "unreal/StarterSource/FootballGame/FootballGameplayTypes.h": [
+        "EFootballContactFoot", "EFootballBallAction", "ShortPass", "ThroughBall", "Shot",
+    ],
+    "unreal/StarterSource/FootballGame/AnimNotify_FootballBallContact.h": [
+        "UAnimNotify_FootballBallContact", "EFootballContactFoot", "FAnimNotifyEventReference",
+    ],
+    "unreal/StarterSource/FootballGame/AnimNotify_FootballBallContact.cpp": [
+        "MeshComp->GetOwner()", "HandleBallContactNotify", "Super::Notify",
+    ],
+    "unreal/StarterSource/FootballGame/FootballPlayerCharacter.h": [
+        "LeftFootContactSocketName", "RightFootContactSocketName",
+        "PassMontage", "ThroughBallMontage", "ShotMontage",
+        "HandleBallContactNotify", "bHasBallControl", "bIsDribbling",
     ],
     "unreal/StarterSource/FootballGame/FootballPlayerCharacter.cpp": [
-        "MoveForward", "MoveRight", "StartSprint", "StopSprint",
-        "AddControllerYawInput", "BrakingDecelerationWalking", "PlayerFollowCamera",
-        "StartPass", "StartThroughBall", "StartShot", "ApplyDribbleControl",
+        "GetBallContactLocation", "ChooseNearestFoot", "QueueBallAction",
+        "Montage_Play", "HandleBallContactNotify", "ApplyFootTouch",
+        "ApplyKickFromFoot", "OnBallContactFallback",
     ],
     "unreal/StarterSource/FootballGame/FootballPlayerAnimInstance.h": [
-        "Speed", "Direction", "VerticalSpeed", "bIsInAir", "bIsSprinting",
+        "bIsDribbling", "bIsPassing", "bIsThroughBall", "bIsShooting",
+        "bIsUsingLeftFoot", "EFootballBallAction",
     ],
     "tools/install_unreal_source.ps1": [
-        "FootballPlayerCharacter.cpp", "FootballPlayerAnimInstance.cpp",
-        "FootballBallActor.cpp", "build_player_test_level.py", "MoveForward",
-        "Gamepad_LeftY", 'ActionName="ThroughBall"', 'ActionName="Shoot"', "PhysicsCore",
+        "FootballGameplayTypes.h", "AnimNotify_FootballBallContact.cpp",
+        "FootballPlayerCharacter.cpp", "FootballBallActor.cpp", "PhysicsCore",
     ],
     "unreal/Content/Python/build_player_test_level.py": [
         "FootballBallActor", "FPO_Ball_Test", "AutoReceiveInput.PLAYER0",
@@ -89,7 +108,7 @@ def main() -> int:
         return 1
 
     print("Unreal starter validation: OK")
-    print("Ball physics, player ball actions and source presence: OK")
+    print("Ball physics, foot socket contact, Anim Notify and action state: OK")
     print("Unreal Editor Python builder syntax: OK")
     print("Note: this is not an Unreal/MSVC C++ build.")
     return 0

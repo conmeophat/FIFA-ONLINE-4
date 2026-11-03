@@ -43,7 +43,10 @@ $RequiredFiles = @(
     "FootballPlayerAnimInstance.h",
     "FootballPlayerAnimInstance.cpp",
     "FootballBallActor.h",
-    "FootballBallActor.cpp"
+    "FootballBallActor.cpp",
+    "FootballGameplayTypes.h",
+    "AnimNotify_FootballBallContact.h",
+    "AnimNotify_FootballBallContact.cpp"
 )
 
 $ApiMacro = $ModuleName.ToUpperInvariant() + "_API"
@@ -151,7 +154,7 @@ if ($MissingMappings.Count -gt 0) {
     $InputAddition = [Environment]::NewLine +
         "[/Script/Engine.InputSettings]" +
         [Environment]::NewLine +
-        "; Football Ball Engine v0.3 input mappings" +
+        "; Football Animation Engine v0.4 input mappings" +
         [Environment]::NewLine +
         ($MissingMappings -join [Environment]::NewLine) +
         [Environment]::NewLine
@@ -160,7 +163,7 @@ if ($MissingMappings.Count -gt 0) {
 }
 
 Write-Host ""
-Write-Host "Football Ball Engine v0.3 source installed." -ForegroundColor Green
+Write-Host "Football Animation Engine v0.4 source installed." -ForegroundColor Green
 Write-Host "Project: $($UProject.FullName)"
 Write-Host "Module:  $ModuleName"
 Write-Host "Source:  $ModuleSource"
@@ -171,3 +174,4 @@ Write-Host "1. Close Unreal Editor."
 Write-Host "2. Regenerate project files."
 Write-Host "3. Build the Development Editor target in Visual Studio."
 Write-Host "4. Reopen Unreal, run build_player_test_level.py, then press Play: E pass, Q through ball, Left Mouse shoot."
+Write-Host "5. Assign foot sockets and action montages, then add Football Ball Contact notifies at the strike frames."

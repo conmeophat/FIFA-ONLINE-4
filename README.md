@@ -51,6 +51,15 @@ See [Football Player Engine v0.2](docs/PLAYER_ENGINE_V0_2.md).
 
 See [Football Ball Engine v0.3](docs/FOOTBALL_BALL_ENGINE_V0_3.md).
 
+### Football Contact & Animation Engine v0.4
+- Configurable left/right foot-contact sockets and alternating dribble touches.
+- Short pass, through-ball and shot Montages with a native Anim Notify at the actual contact frame.
+- Ball impulse is triggered by the notify, not immediately when the input key is pressed.
+- Animation Blueprint exposes dribbling, ball action, and selected-foot variables.
+- Watchdog fallback keeps the action playable if a Montage notify was omitted.
+
+See [Football Contact & Animation Engine v0.4](docs/FOOTBALL_CONTACT_ANIMATION_V0_4.md).
+
 **Important:** these are development blockouts and starter systems, not a finished photoreal stadium or finished football gameplay. Unreal C++ compilation and visual verification still need to happen on the target Windows machine.
 
 ## Run the Python backend (Windows PowerShell)
@@ -101,4 +110,4 @@ The files under data/fixtures are synthetic development fixtures, not real or of
 
 ## Current status
 
-The repository contains the Python API foundation, stadium/camera C++ starter, player movement/animation starter, physics ball, assisted dribbling, passing, through balls, shooting, goal detection, Editor Python builders and a PowerShell installer. The Unreal project must still be generated, compiled and play-tested in the local Unreal Editor + MSVC environment. No literal foot-socket contact animation, complete match rules, 11v11 AI, official worldwide roster or online mode is claimed yet.
+The repository contains the Python API foundation, stadium/camera C++ starter, player movement/animation starter, physics ball, assisted dribbling, passing, through balls, shooting, goal detection, Editor Python builders and a PowerShell installer. The Unreal project must still be generated, compiled and play-tested in the local Unreal Editor + MSVC environment. Actual animation clips and montage assets are not bundled: the v0.4 C++ timing hooks require the user to import licensed animations, add the two foot sockets and place contact notifies. Complete match rules, 11v11 AI, official worldwide roster and online mode are not claimed yet.

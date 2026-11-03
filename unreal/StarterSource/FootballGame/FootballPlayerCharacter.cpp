@@ -3,6 +3,7 @@
 #include "FootballBallActor.h"
 
 #include "Animation/AnimInstance.h"
+#include "Animation/AnimMontage.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/InputComponent.h"
@@ -17,6 +18,7 @@
 #include "InputCoreTypes.h"
 #include "Materials/MaterialInterface.h"
 #include "Math/RotationMatrix.h"
+#include "TimerManager.h"
 #include "UObject/ConstructorHelpers.h"
 
 AFootballPlayerCharacter::AFootballPlayerCharacter()
@@ -101,8 +103,7 @@ AFootballPlayerCharacter::AFootballPlayerCharacter()
         return Component;
     };
 
-    // A temporary, engine-built primitive mannequin keeps the pawn visible
-    // before the project imports a properly licensed rigged footballer model.
+    // Temporary, engine-built proxy; use a licensed Skeletal Mesh for production.
     TorsoProxy = CreateProxy(
         TEXT("Proxy_Torso"), ProxyCubeMesh,
         FVector(0.0f, 0.0f, 112.0f), FVector(0.46f, 0.28f, 0.68f),
@@ -146,6 +147,7 @@ AFootballPlayerCharacter::AFootballPlayerCharacter()
 void AFootballPlayerCharacter::Tick(const float DeltaSeconds)
 {
     Super::Tick(DeltaSeconds);
+
     BallControlLockout = FMath::Max(0.0f, BallControlLockout - DeltaSeconds);
 
     if (!IsValid(ControlledBall) && BallControlLockout <= 0.0f)
@@ -154,12 +156,18 @@ void AFootballPlayerCharacter::Tick(const float DeltaSeconds)
         if (BallSearchAccumulator <= 0.0f)
         {
             RefreshNearbyBall();
-            BallSearchAccumulator = 0.25f;
+            BallSearchAccumulator = 0.20f;
         }
     }
+
     if (IsValid(ControlledBall))
     {
         UpdateBallControl(DeltaSeconds);
+    }
+    else
+    {
+        bHasBallControl = false;
+        bIsDribbling = false;
     }
 }
 
@@ -192,7 +200,6 @@ void AFootballPlayerCharacter::BeginPlay()
 void AFootballPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
     Super::SetupPlayerInputComponent(PlayerInputComponent);
-
     check(PlayerInputComponent);
 
     PlayerInputComponent->BindAxis(
@@ -220,9 +227,15 @@ void AFootballPlayerCharacter::SetupPlayerInputComponent(UInputComponent* Player
     PlayerInputComponent->BindAction(
         TEXT("Jump"), IE_Released, this, &AFootballPlayerCharacter::StopJump
     );
-    PlayerInputComponent->BindAction(TEXT("Pass"), IE_Pressed, this, &AFootballPlayerCharacter::StartPass);
-    PlayerInputComponent->BindAction(TEXT("ThroughBall"), IE_Pressed, this, &AFootballPlayerCharacter::StartThroughBall);
-    PlayerInputComponent->BindAction(TEXT("Shoot"), IE_Pressed, this, &AFootballPlayerCharacter::StartShot);
+    PlayerInputComponent->BindAction(
+        TEXT("Pass"), IE_Pressed, this, &AFootballPlayerCharacter::StartPass
+    );
+    PlayerInputComponent->BindAction(
+        TEXT("ThroughBall"), IE_Pressed, this, &AFootballPlayerCharacter::StartThroughBall
+    );
+    PlayerInputComponent->BindAction(
+        TEXT("Shoot"), IE_Pressed, this, &AFootballPlayerCharacter::StartShot
+    );
 }
 
 void AFootballPlayerCharacter::MoveForward(const float Value)
@@ -332,34 +345,13 @@ void AFootballPlayerCharacter::RefreshAppearance()
         }
     }
 
-    if (TorsoProxy)
-    {
-        TorsoProxy->SetMaterial(0, ProxyKitMaterial);
-    }
-    if (LeftArmProxy)
-    {
-        LeftArmProxy->SetMaterial(0, ProxyKitMaterial);
-    }
-    if (RightArmProxy)
-    {
-        RightArmProxy->SetMaterial(0, ProxyKitMaterial);
-    }
-    if (HeadProxy)
-    {
-        HeadProxy->SetMaterial(0, ProxyKitMaterial);
-    }
-    if (ShortsProxy)
-    {
-        ShortsProxy->SetMaterial(0, ProxyShortsMaterial);
-    }
-    if (LeftLegProxy)
-    {
-        LeftLegProxy->SetMaterial(0, ProxyBootsMaterial);
-    }
-    if (RightLegProxy)
-    {
-        RightLegProxy->SetMaterial(0, ProxyBootsMaterial);
-    }
+    if (TorsoProxy) TorsoProxy->SetMaterial(0, ProxyKitMaterial);
+    if (LeftArmProxy) LeftArmProxy->SetMaterial(0, ProxyKitMaterial);
+    if (RightArmProxy) RightArmProxy->SetMaterial(0, ProxyKitMaterial);
+    if (HeadProxy) HeadProxy->SetMaterial(0, ProxyKitMaterial);
+    if (ShortsProxy) ShortsProxy->SetMaterial(0, ProxyShortsMaterial);
+    if (LeftLegProxy) LeftLegProxy->SetMaterial(0, ProxyBootsMaterial);
+    if (RightLegProxy) RightLegProxy->SetMaterial(0, ProxyBootsMaterial);
 }
 
 float AFootballPlayerCharacter::GetHorizontalSpeed() const
@@ -379,6 +371,44 @@ float AFootballPlayerCharacter::GetMovementDirection() const
     return FMath::FindDeltaAngleDegrees(GetActorRotation().Yaw, MovementYaw);
 }
 
+FVector AFootballPlayerCharacter::GetBallContactLocation(
+    const EFootballContactFoot ContactFoot
+) const
+{
+    const bool bUseLeftFoot = ContactFoot == EFootballContactFoot::Left;
+    const FName SocketName = bUseLeftFoot
+        ? LeftFootContactSocketName
+        : RightFootContactSocketName;
+
+    if (GetMesh() && GetMesh()->DoesSocketExist(SocketName))
+    {
+        return GetMesh()->GetSocketLocation(SocketName);
+    }
+
+    // Fallback is only for the primitive development mannequin / unconfigured rigs.
+    const FVector SideOffset = GetActorRightVector() * (bUseLeftFoot ? -18.0f : 18.0f);
+    return GetActorLocation() + GetActorForwardVector() * 70.0f +
+        SideOffset + FVector(0.0f, 0.0f, -78.0f);
+}
+
+EFootballContactFoot AFootballPlayerCharacter::ChooseNearestFoot() const
+{
+    if (!IsValid(ControlledBall))
+    {
+        return EFootballContactFoot::Right;
+    }
+
+    const FVector BallLocation = ControlledBall->GetActorLocation();
+    const float LeftDistance = FVector::DistSquared(
+        BallLocation, GetBallContactLocation(EFootballContactFoot::Left)
+    );
+    const float RightDistance = FVector::DistSquared(
+        BallLocation, GetBallContactLocation(EFootballContactFoot::Right)
+    );
+    return LeftDistance <= RightDistance
+        ? EFootballContactFoot::Left
+        : EFootballContactFoot::Right;
+}
 
 void AFootballPlayerCharacter::RefreshNearbyBall()
 {
@@ -386,9 +416,11 @@ void AFootballPlayerCharacter::RefreshNearbyBall()
     {
         return;
     }
+
     constexpr float SearchRangeCm = 300.0f;
     float BestDistanceSquared = FMath::Square(SearchRangeCm);
     AFootballBallActor* BestBall = nullptr;
+
     for (TActorIterator<AFootballBallActor> It(GetWorld()); It; ++It)
     {
         AFootballBallActor* Candidate = *It;
@@ -396,6 +428,7 @@ void AFootballPlayerCharacter::RefreshNearbyBall()
         {
             continue;
         }
+
         const float DistanceSquared = FVector::DistSquared2D(
             GetActorLocation(), Candidate->GetActorLocation()
         );
@@ -405,42 +438,101 @@ void AFootballPlayerCharacter::RefreshNearbyBall()
             BestBall = Candidate;
         }
     }
+
     ControlledBall = BestBall;
 }
 
 void AFootballPlayerCharacter::UpdateBallControl(const float DeltaSeconds)
 {
-    if (!IsValid(ControlledBall) || GetCharacterMovement()->IsFalling())
+    if (!IsValid(ControlledBall) || GetCharacterMovement()->IsFalling() ||
+        PendingBallAction != EFootballBallAction::None)
     {
-        ControlledBall = nullptr;
+        bHasBallControl = false;
+        bIsDribbling = false;
         return;
     }
+
     const FVector ToBall = ControlledBall->GetActorLocation() - GetActorLocation();
-    if (ToBall.SizeSquared2D() > FMath::Square(280.0f) ||
+    if (ToBall.SizeSquared2D() > FMath::Square(300.0f) ||
         FVector::DotProduct(GetActorForwardVector(), ToBall.GetSafeNormal2D()) < -0.35f)
     {
         ControlledBall = nullptr;
+        bHasBallControl = false;
+        bIsDribbling = false;
         return;
     }
 
-    FVector TargetLocation = GetActorLocation() + GetActorForwardVector() * 125.0f;
-    TargetLocation += GetVelocity().GetSafeNormal2D() * 25.0f;
-    TargetLocation.Z = ControlledBall->GetActorLocation().Z;
-    ControlledBall->ApplyDribbleControl(TargetLocation, GetVelocity(), DeltaSeconds);
+    bHasBallControl = true;
+    bIsDribbling = GetHorizontalSpeed() > 20.0f;
+    DribbleTouchAccumulator -= DeltaSeconds;
+
+    if (DribbleTouchAccumulator <= 0.0f)
+    {
+        LastDribbleFoot = LastDribbleFoot == EFootballContactFoot::Left
+            ? EFootballContactFoot::Right
+            : EFootballContactFoot::Left;
+
+        EFootballContactFoot TouchFoot = LastDribbleFoot;
+        const FVector TouchLocation = GetBallContactLocation(TouchFoot);
+        if (FVector::DistSquared2D(
+            TouchLocation, ControlledBall->GetActorLocation()
+        ) > FMath::Square(120.0f))
+        {
+            TouchFoot = TouchFoot == EFootballContactFoot::Left
+                ? EFootballContactFoot::Right
+                : EFootballContactFoot::Left;
+        }
+
+        ActiveContactFoot = TouchFoot;
+        ControlledBall->ApplyFootTouch(
+            GetBallContactLocation(TouchFoot),
+            GetActorForwardVector(),
+            GetVelocity()
+        );
+
+        DribbleTouchAccumulator = bIsSprinting ? 0.20f : 0.28f;
+    }
 }
 
-void AFootballPlayerCharacter::TryKickBall(
-    const float SpeedCmPerSec,
-    const float LiftCmPerSec,
-    const float SpinDegPerSec
-)
+UAnimMontage* AFootballPlayerCharacter::GetBallActionMontage(
+    const EFootballBallAction Action
+) const
 {
+    switch (Action)
+    {
+    case EFootballBallAction::ShortPass:
+        return PassMontage;
+    case EFootballBallAction::ThroughBall:
+        return ThroughBallMontage;
+    case EFootballBallAction::Shot:
+        return ShotMontage;
+    default:
+        return nullptr;
+    }
+}
+
+float AFootballPlayerCharacter::PlayBallActionMontage(const EFootballBallAction Action)
+{
+    UAnimMontage* Montage = GetBallActionMontage(Action);
+    UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
+
+    if (!IsValid(Montage) || !IsValid(AnimInstance))
+    {
+        return 0.0f;
+    }
+
+    return AnimInstance->Montage_Play(Montage, 1.0f);
+}
+
+void AFootballPlayerCharacter::QueueBallAction(const EFootballBallAction Action)
+{
+    if (PendingBallAction != EFootballBallAction::None)
+    {
+        return;
+    }
+
     if (!IsValid(ControlledBall))
     {
-        if (BallControlLockout > 0.0f)
-        {
-            return;
-        }
         RefreshNearbyBall();
     }
     if (!IsValid(ControlledBall))
@@ -448,34 +540,147 @@ void AFootballPlayerCharacter::TryKickBall(
         return;
     }
 
-    const FVector ToBall = ControlledBall->GetActorLocation() - GetActorLocation();
-    if (ToBall.SizeSquared2D() > FMath::Square(300.0f))
+    if (FVector::DistSquared2D(
+        GetActorLocation(), ControlledBall->GetActorLocation()
+    ) > FMath::Square(300.0f))
     {
         ControlledBall = nullptr;
         return;
     }
 
-    if (ControlledBall->ApplyKick(
-        GetActorForwardVector(), SpeedCmPerSec, LiftCmPerSec, SpinDegPerSec
-    ))
+    PendingBallAction = Action;
+    PendingContactFoot = ChooseNearestFoot();
+    ActiveBallAction = Action;
+    ActiveContactFoot = PendingContactFoot;
+
+    const float MontageLength = PlayBallActionMontage(Action);
+    const float StateDuration = MontageLength > 0.0f
+        ? MontageLength + 0.08f
+        : 0.55f;
+    const float ContactWatchdog = MontageLength > 0.0f
+        ? FMath::Max(0.45f, MontageLength * 0.90f)
+        : FMath::Max(0.12f, ActionContactFallbackDelay);
+
+    GetWorldTimerManager().SetTimer(
+        BallActionStateTimer,
+        this,
+        &AFootballPlayerCharacter::EndBallActionState,
+        StateDuration,
+        false
+    );
+
+    // The montage notify should fire first. This watchdog lets a configured
+    // montage remain playable even if the asset author forgot to add the notify.
+    GetWorldTimerManager().SetTimer(
+        PendingContactFallbackTimer,
+        this,
+        &AFootballPlayerCharacter::OnBallContactFallback,
+        ContactWatchdog,
+        false
+    );
+}
+
+void AFootballPlayerCharacter::HandleBallContactNotify(
+    const EFootballContactFoot ContactFoot
+)
+{
+    if (PendingBallAction == EFootballBallAction::None)
+    {
+        return;
+    }
+
+    GetWorldTimerManager().ClearTimer(PendingContactFallbackTimer);
+
+    const EFootballContactFoot ResolvedFoot =
+        ContactFoot == EFootballContactFoot::Auto
+        ? PendingContactFoot
+        : ContactFoot;
+
+    ActiveContactFoot = ResolvedFoot;
+    ExecutePendingBallAction(ResolvedFoot);
+}
+
+void AFootballPlayerCharacter::ExecutePendingBallAction(
+    const EFootballContactFoot ContactFoot
+)
+{
+    const EFootballBallAction Action = PendingBallAction;
+    PendingBallAction = EFootballBallAction::None;
+
+    if (!IsValid(ControlledBall))
+    {
+        RefreshNearbyBall();
+    }
+    if (!IsValid(ControlledBall))
+    {
+        return;
+    }
+
+    float SpeedCmPerSec = 0.0f;
+    float LiftCmPerSec = 0.0f;
+    float SpinDegPerSec = 0.0f;
+
+    switch (Action)
+    {
+    case EFootballBallAction::ShortPass:
+        SpeedCmPerSec = 1500.0f;
+        LiftCmPerSec = 22.0f;
+        SpinDegPerSec = 80.0f;
+        break;
+    case EFootballBallAction::ThroughBall:
+        SpeedCmPerSec = 1900.0f;
+        LiftCmPerSec = 65.0f;
+        SpinDegPerSec = 130.0f;
+        break;
+    case EFootballBallAction::Shot:
+        SpeedCmPerSec = 2550.0f;
+        LiftCmPerSec = 420.0f;
+        SpinDegPerSec = 260.0f;
+        break;
+    default:
+        return;
+    }
+
+    const FVector FootLocation = GetBallContactLocation(ContactFoot);
+    const bool bKicked = ControlledBall->ApplyKickFromFoot(
+        FootLocation,
+        GetActorForwardVector(),
+        SpeedCmPerSec,
+        LiftCmPerSec,
+        SpinDegPerSec
+    );
+
+    if (bKicked)
     {
         ControlledBall = nullptr;
-        BallControlLockout = 0.7f;
-        BallSearchAccumulator = 0.7f;
+        bHasBallControl = false;
+        bIsDribbling = false;
+        BallControlLockout = 0.70f;
+        BallSearchAccumulator = 0.70f;
     }
+}
+
+void AFootballPlayerCharacter::OnBallContactFallback()
+{
+    HandleBallContactNotify(EFootballContactFoot::Auto);
+}
+
+void AFootballPlayerCharacter::EndBallActionState()
+{
+    ActiveBallAction = EFootballBallAction::None;
 }
 
 void AFootballPlayerCharacter::StartPass()
 {
-    TryKickBall(1500.0f, 22.0f, 80.0f);
+    QueueBallAction(EFootballBallAction::ShortPass);
 }
 
 void AFootballPlayerCharacter::StartThroughBall()
 {
-    TryKickBall(1900.0f, 65.0f, 130.0f);
+    QueueBallAction(EFootballBallAction::ThroughBall);
 }
 
 void AFootballPlayerCharacter::StartShot()
 {
-    TryKickBall(2550.0f, 420.0f, 260.0f);
+    QueueBallAction(EFootballBallAction::Shot);
 }
