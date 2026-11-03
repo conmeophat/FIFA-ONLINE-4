@@ -375,9 +375,9 @@ bool AFootballMatchDirector::RequestSubstitution(
         }
     }
 
-    PlayerOut->Destroy();
     ++Used;
     OnSubstitutionMade.Broadcast(TeamId, PlayerOut, PlayerIn);
+    PlayerOut->Destroy();
     return true;
 }
 
