@@ -23,7 +23,12 @@ enum class EFootballAITaskState : uint8
     FindSpace UMETA(DisplayName = "Find space"),
     PressOpponent UMETA(DisplayName = "Press opponent"),
     MarkOpponent UMETA(DisplayName = "Mark opponent"),
-    RecoverShape UMETA(DisplayName = "Recover team shape")
+    RecoverShape UMETA(DisplayName = "Recover team shape"),
+    GoalkeeperSet UMETA(DisplayName = "Goalkeeper set position"),
+    GoalkeeperDive UMETA(DisplayName = "Goalkeeper save"),
+    GoalkeeperCollect UMETA(DisplayName = "Goalkeeper collect"),
+    GoalkeeperDistribute UMETA(DisplayName = "Goalkeeper distribute"),
+    RestartTaker UMETA(DisplayName = "Take restart")
 };
 
 
@@ -52,5 +57,33 @@ enum class EFootballTacticalAction : uint8
     ThroughBall UMETA(DisplayName = "Through ball"),
     Cross UMETA(DisplayName = "Cross"),
     Clear UMETA(DisplayName = "Clear"),
-    Shot UMETA(DisplayName = "Shot")
+    Shot UMETA(DisplayName = "Shot"),
+    ThrowIn UMETA(DisplayName = "Throw-in"),
+    CornerKick UMETA(DisplayName = "Corner kick"),
+    GoalKick UMETA(DisplayName = "Goal kick"),
+    FreeKick UMETA(DisplayName = "Free kick"),
+    PenaltyKick UMETA(DisplayName = "Penalty kick")
+};
+
+UENUM(BlueprintType)
+enum class EFootballMatchPeriod : uint8
+{
+    PreMatch UMETA(DisplayName = "Pre-match"),
+    FirstHalf UMETA(DisplayName = "First half"),
+    HalfTime UMETA(DisplayName = "Half-time"),
+    SecondHalf UMETA(DisplayName = "Second half"),
+    FullTime UMETA(DisplayName = "Full-time")
+};
+
+UENUM(BlueprintType)
+enum class EFootballRestartType : uint8
+{
+    None UMETA(DisplayName = "None"),
+    KickOff UMETA(DisplayName = "Kick-off"),
+    ThrowIn UMETA(DisplayName = "Throw-in"),
+    CornerKick UMETA(DisplayName = "Corner kick"),
+    GoalKick UMETA(DisplayName = "Goal kick"),
+    DirectFreeKick UMETA(DisplayName = "Direct free kick"),
+    IndirectFreeKick UMETA(DisplayName = "Indirect free kick"),
+    PenaltyKick UMETA(DisplayName = "Penalty kick")
 };
