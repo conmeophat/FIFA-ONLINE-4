@@ -272,7 +272,7 @@ void AFootballPlayerCharacter::RefreshAppearance()
     {
         if (GetMesh()->GetSkeletalMeshAsset() != PlayerSkeletalMesh)
         {
-            GetMesh()->SetSkeletalMesh(PlayerSkeletalMesh);
+            GetMesh()->SetSkeletalMesh(PlayerSkeletalMesh, true);
         }
 
         GetMesh()->SetRelativeLocation(SkeletalMeshRelativeLocation);
