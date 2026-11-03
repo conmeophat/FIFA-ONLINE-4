@@ -93,6 +93,9 @@ public:
     UPROPERTY(BlueprintReadOnly, Category = "Football|Ball Action")
     EFootballContactFoot ContactFoot = EFootballContactFoot::Right;
 
+    UPROPERTY(BlueprintReadOnly, Category = "Football|Animation")
+    EFootballAnimationCue AnimationCue = EFootballAnimationCue::None;
+
     UPROPERTY(BlueprintReadOnly, Category = "Football|AI")
     bool bIsAIControlled = false;
 
