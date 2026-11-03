@@ -52,32 +52,51 @@ foreach ($FileName in $RequiredFiles) {
     Set-Content -Path (Join-Path $ModuleSource $FileName) -Value $Content -Encoding utf8
 }
 
-# Add dependencies inside the Build.cs class body, never after the closing brace.
+# Add HTTP/JSON dependencies inside the module constructor.
 $BuildContent = Get-Content -Path $BuildCs -Raw
-$MissingDependencies = @("HTTP", "Json", "JsonUtilities") | Where-Object {
-    $BuildContent -notmatch ('"' + [regex]::Escape($_) + '"')
-}
+$DependenciesToEnsure = @("HTTP", "Json", "JsonUtilities")
+$DependencyPattern = 'PublicDependencyModuleNames\.AddRange\(\s*new\s+string\[\]\s*\{(?<items>[\s\S]*?)\}\s*\);'
+$DependencyMatch = [regex]::Match($BuildContent, $DependencyPattern)
 
-if ($MissingDependencies.Count -gt 0) {
-    $LastBrace = $BuildContent.LastIndexOf("}")
-    if ($LastBrace -lt 0) {
-        throw "Could not locate the closing brace in $BuildCs."
+if ($DependencyMatch.Success) {
+    $DependencyBody = $DependencyMatch.Groups["items"].Value
+    $MissingDependencies = @($DependenciesToEnsure | Where-Object {
+        $DependencyBody -notmatch ('"' + [regex]::Escape($_) + '"')
+    })
+
+    if ($MissingDependencies.Count -gt 0) {
+        foreach ($Dependency in $MissingDependencies) {
+            $DependencyBody += [Environment]::NewLine + '            "' + $Dependency + '",'
+        }
+
+        $Replacement = "PublicDependencyModuleNames.AddRange(new string[] {" +
+            $DependencyBody + [Environment]::NewLine + "        });"
+        $BuildContent = $BuildContent.Replace($DependencyMatch.Value, $Replacement)
+    }
+}
+else {
+    $ConstructorPattern = 'public\s+\w+\s*\([^)]*\)\s*:\s*base\s*\([^)]*\)\s*\{'
+    $ConstructorMatch = [regex]::Match($BuildContent, $ConstructorPattern)
+
+    if (-not $ConstructorMatch.Success) {
+        throw "Could not locate the module constructor in $BuildCs. Add HTTP, Json and JsonUtilities to PublicDependencyModuleNames manually."
     }
 
-    $DependencyNames = ($MissingDependencies | ForEach-Object { '"' + $_ + '"' }) -join ", "
     $Addition = [Environment]::NewLine +
-        "// Required by the Python Football Online HTTP catalogue bridge." +
-        [Environment]::NewLine +
-        "PublicDependencyModuleNames.AddRange(new string[] { $DependencyNames });" +
+        '        PublicDependencyModuleNames.AddRange(new string[] { "HTTP", "Json", "JsonUtilities" });' +
         [Environment]::NewLine
-
-    $BuildContent = $BuildContent.Insert($LastBrace, $Addition)
-    Set-Content -Path $BuildCs -Value $BuildContent -Encoding utf8
+    $InsertAt = $ConstructorMatch.Index + $ConstructorMatch.Length
+    $BuildContent = $BuildContent.Insert($InsertAt, $Addition)
 }
 
+Set-Content -Path $BuildCs -Value $BuildContent -Encoding utf8
+
+# Install the Unreal Editor Python level-builder script and adapt the reflected module path.
 $PythonContentDir = Join-Path $ProjectRoot "Content\Python"
 New-Item -ItemType Directory -Force -Path $PythonContentDir | Out-Null
-Copy-Item -Path (Join-Path $UnrealRoot "Content\Python\build_stadium_level.py") -Destination (Join-Path $PythonContentDir "build_stadium_level.py") -Force
+$PythonScript = Get-Content -Path (Join-Path $UnrealRoot "Content\Python\build_stadium_level.py") -Raw
+$PythonScript = $PythonScript.Replace("/Script/FootballGame.", ("/Script/" + $ModuleName + "."))
+Set-Content -Path (Join-Path $PythonContentDir "build_stadium_level.py") -Value $PythonScript -Encoding utf8
 
 Write-Host ""
 Write-Host "Football project source installed." -ForegroundColor Green
