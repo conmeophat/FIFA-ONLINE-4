@@ -11,9 +11,33 @@ The Unreal project is generated locally with the Epic Games Launcher and will be
 5. Install Visual Studio Build Tools with the MSVC C++ toolchain and Windows SDK required by your Unreal version.
 6. Generate project files and build the project once before adding gameplay code.
 
-## Runtime modules
+## Connect to the Python backend
 
-When backend connectivity is added, the game module may need Unreal modules such as `HTTP`, `Json` and `JsonUtilities`. Add dependencies in the game's `Build.cs` and implement requests in C++; do not call the Python Editor API from packaged gameplay.
+Copy these starter files into the generated project's `Source/FootballGame/` directory:
+
+- `StarterSource/FootballGame/FootballApiSubsystem.h`
+- `StarterSource/FootballGame/FootballApiSubsystem.cpp`
+
+In `FootballGame.Build.cs`, ensure the module dependencies include:
+
+```csharp
+PublicDependencyModuleNames.AddRange(new string[]
+{
+    "Core",
+    "CoreUObject",
+    "Engine",
+    "InputCore",
+    "HTTP",
+    "Json",
+    "JsonUtilities"
+});
+```
+
+Keep any dependencies already present in your generated Build.cs. Regenerate project files and build after copying the source.
+
+The subsystem exposes `RequestClubs`, `OnClubsReceived` and `OnRequestFailed` to Blueprint. Start the Python backend first, get the subsystem from the Game Instance, bind the two events, then call `RequestClubs`. The default API URL is `http://127.0.0.1:8000`; the URL property must not end with a slash.
+
+This is a minimal catalogue request example, not a full gameplay/networking implementation. Do not call HTTP from Tick or use REST requests for per-frame physics.
 
 ## Content conventions
 
