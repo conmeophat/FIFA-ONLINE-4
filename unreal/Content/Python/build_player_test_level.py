@@ -138,10 +138,12 @@ def main():
     if not unreal.EditorLoadingAndSavingUtils.save_current_level():
         unreal.log_warning("Could not auto-save level. Save it manually.")
 
-    unreal.log("Football Match Engine v0.8: full 11v11 created (1 human + 21 AI) and one physics ball.")
+    unreal.log("Football Match Engine v0.9: 11v11 match with player duels, goalkeeper catch/hold and set-piece AI.")
     unreal.log("Both teams use the 4-3-3 default with goalkeeper slots at SquadSlotIndex 0.")
     unreal.log("Match Director handles clock, score, kick-offs, throw-ins, corners, goal kicks, free kicks and offside.")
-    unreal.log("Goalkeepers position, parry close shots and distribute with physical long kicks.")
+    unreal.log("Goalkeepers position, parry, catch/hold the ball, and distribute with a physical long kick.")
+    unreal.log("Native match HUD automatically displays team score, match clock and half/full-time state.")
+    unreal.log("Shoulder-duel state is exposed to the Animation Blueprint; assign licensed reaction and contact clips for final motion.")
     unreal.log("MatchClockRate=30: one game-minute passes in two real seconds; adjust FPO_Match_Director to change pacing.")
 
 
