@@ -61,8 +61,12 @@ private:
     float DecisionAccumulator = 0.0f;
     float ContestCooldown = 0.0f;
     FVector HomeLocation = FVector::ZeroVector;
+    FVector CachedMoveTarget = FVector::ZeroVector;
+    bool bHasCachedMoveTarget = false;
+    TArray<TWeakObjectPtr<AFootballPlayerCharacter>> CachedTeammates;
 
     void UpdateTeamDecision();
+    void ApplyCachedSteering();
     void GatherFootballers(TArray<AFootballPlayerCharacter*>& OutPlayers) const;
     AFootballPlayerCharacter* FindClosestPlayer(
         const TArray<AFootballPlayerCharacter*>& Players,
