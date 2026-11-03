@@ -24,7 +24,7 @@ The script:
 - Finds the Unreal \`.uproject\` recursively under \`unreal/\`.
 - Copies the API bridge, stadium, broadcast camera, player character and animation instance C++ files into the generated Runtime module.
 - Rewrites the API export macro and reflected Python class paths to match the module name.
-- Ensures HTTP/JSON module dependencies exist.
+- Ensures HTTP, JSON and InputCore module dependencies exist.
 - Merges keyboard/mouse and common gamepad axis/action mappings into \`Config/DefaultInput.ini\`.
 - Copies both Editor Python builder scripts.
 
