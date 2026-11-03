@@ -50,9 +50,6 @@ void AFootballStadiumActor::OnConstruction(const FTransform& Transform)
 
     ClearGeneratedComponents();
 
-    const float HalfLength = PitchLengthCm * 0.5f;
-    const float HalfWidth = PitchWidthCm * 0.5f;
-
     // The default Engine cube is 100 cm on each axis. Its top surface sits at Z=0.
     PitchSurface->SetRelativeLocation(FVector(0.0f, 0.0f, -10.0f));
     PitchSurface->SetRelativeScale3D(FVector(
@@ -60,10 +57,7 @@ void AFootballStadiumActor::OnConstruction(const FTransform& Transform)
         PitchWidthCm / FootballStadium::CubeSizeCm,
         0.20f
     ));
-    if (PitchMaterial)
-    {
-        PitchSurface->SetMaterial(0, PitchMaterial);
-    }
+    PitchSurface->SetMaterial(0, PitchMaterial);
 
     BuildPitchMarkings();
     BuildPenaltyAreas();
@@ -80,9 +74,6 @@ void AFootballStadiumActor::OnConstruction(const FTransform& Transform)
         BuildFloodlightTowers();
     }
 
-    // Keep the dimensions visible in the actor's component layout for quick inspection.
-    (void)HalfLength;
-    (void)HalfWidth;
 }
 
 void AFootballStadiumActor::ClearGeneratedComponents()
@@ -185,7 +176,6 @@ void AFootballStadiumActor::BuildPenaltyAreas()
 {
     const float HalfLength = PitchLengthCm * 0.5f;
     const float HalfPenaltyWidth = PenaltyAreaWidthCm * 0.5f;
-    const float HalfWidth = PitchWidthCm * 0.5f;
     const float GoalAreaDepthCm = 550.0f;
     const float GoalAreaWidthCm = 1832.0f;
     const float HalfGoalAreaWidth = GoalAreaWidthCm * 0.5f;
@@ -253,7 +243,6 @@ void AFootballStadiumActor::BuildPenaltyAreas()
         );
     }
 
-    (void)HalfWidth;
 }
 
 void AFootballStadiumActor::BuildGoals()
