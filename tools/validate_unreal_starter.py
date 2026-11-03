@@ -66,7 +66,7 @@ REQUIRED_SYMBOLS = {
     "unreal/StarterSource/FootballGame/FootballTeamAIController.h": [
         "DecisionIntervalSeconds", "CurrentTaskState", "FindFormationTarget",
         "TryTacticalBallAction", "GetPassLaneClearance", "SetMatchPhase",
-        "TransitionToAttack", "TransitionToDefence", "CurrentMatchPhase", "CurrentTacticalAction",
+        "CurrentMatchPhase", "CurrentTacticalAction",
     ],
     "unreal/StarterSource/FootballGame/FootballTeamAIController.cpp": [
         "FindClosestPlayer", "SupportRun", "PressOpponent", "MarkOpponent",
