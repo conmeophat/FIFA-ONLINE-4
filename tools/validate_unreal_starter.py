@@ -26,6 +26,8 @@ REQUIRED_FILES = [
     "unreal/StarterSource/FootballGame/FootballTeamAIController.cpp",
     "unreal/StarterSource/FootballGame/FootballAIPlayerCharacter.h",
     "unreal/StarterSource/FootballGame/FootballAIPlayerCharacter.cpp",
+    "unreal/StarterSource/FootballGame/FootballMatchDirector.h",
+    "unreal/StarterSource/FootballGame/FootballMatchDirector.cpp",
     "unreal/StarterSource/FootballGame/AnimNotify_FootballBallContact.h",
     "unreal/StarterSource/FootballGame/AnimNotify_FootballBallContact.cpp",
     "unreal/Content/Python/build_stadium_level.py",
@@ -48,6 +50,7 @@ REQUIRED_SYMBOLS = {
     ],
     "unreal/StarterSource/FootballGame/FootballPlayerCharacter.cpp": [
         "TryExecuteAITacticalKick", "ApplyKickFromFoot", "EFootballTacticalAction::Cross",
+        "NotifyBallPlayed", "NotifyBallTouched", "RegisterLastTouch",
         "UpdateFootballFacing", "UpdateBalance", "UpdateDynamicMovementTuning",
         "FMath::FixedTurn", "BrakingDecelerationWalking",
         "Movement->AddImpulse", "StartBrace", "StopBrace",
@@ -61,7 +64,8 @@ REQUIRED_SYMBOLS = {
         "EFootballPlayerRole", "EFootballAITaskState", "SupportRun", "PressOpponent", "MarkOpponent",
         "EFootballFormation", "Formation433", "Formation4231", "Formation442",
         "EFootballMatchPhase", "TransitionToAttack", "TransitionToDefence",
-        "EFootballTacticalAction", "ThroughBall", "Cross",
+        "EFootballTacticalAction", "ThroughBall", "Cross", "CornerKick",
+        "EFootballMatchPeriod", "EFootballRestartType", "IndirectFreeKick", "PenaltyKick",
     ],
     "unreal/StarterSource/FootballGame/FootballTeamAIController.h": [
         "DecisionIntervalSeconds", "CurrentTaskState", "FindFormationTarget",
@@ -96,7 +100,8 @@ REQUIRED_SYMBOLS = {
     ],
     "tools/install_unreal_source.ps1": [
         "FootballPlayerCharacter.cpp", "FootballPlayerAnimInstance.cpp",
-        "FootballTeamAIController.cpp", "FootballAIPlayerCharacter.cpp", "AIModule",
+        "FootballTeamAIController.cpp", "FootballMatchDirector.cpp",
+        "FootballAIPlayerCharacter.cpp", "AIModule",
         "FootballBallActor.cpp", "PhysicsCore", 'ActionName="Brace"',
         "Gamepad_RightShoulder",
     ],
@@ -105,6 +110,15 @@ REQUIRED_SYMBOLS = {
     ],
     "unreal/StarterSource/FootballGame/FootballBallActor.cpp": [
         "ApplyKickFromFoot", "ApplyFootTouch", "RegisterGoal",
+        "RegisterLastTouch", "StopAtRestart", "TryGoalkeeperParry",
+    ],
+    "unreal/StarterSource/FootballGame/FootballMatchDirector.h": [
+        "HalfDurationSeconds", "MatchClockRate", "CurrentPeriod", "bRestartPending",
+        "NotifyBallPlayed", "NotifyBallTouched", "SignalFoul", "NotifyRestartTaken",
+    ],
+    "unreal/StarterSource/FootballGame/FootballMatchDirector.cpp": [
+        "BuildOffsideSnapshot", "CheckOutOfPlay", "EnterHalfTime", "StartSecondHalf",
+        "ThrowIn", "CornerKick", "GoalKick", "IndirectFreeKick", "HandleGoalScored",
     ],
     "unreal/StarterSource/FootballGame/AnimNotify_FootballBallContact.cpp": [
         "HandleBallContactNotify",
@@ -150,6 +164,7 @@ def main() -> int:
     print("Unreal starter validation: OK")
     print("Player inertia, turn control, balance and contest reaction: OK")
     print("v0.4 ball contact / animation integration: OK")
+    print("v0.8 match clock, offside, restarts and goalkeeper hooks: OK")
     print("Unreal Editor Python builder syntax: OK")
     print("Note: this is not an Unreal/MSVC C++ build.")
     return 0
