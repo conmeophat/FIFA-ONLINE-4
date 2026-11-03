@@ -12,6 +12,12 @@ class UFootballMatchHUDWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnFootballRestartAwarded, EFootballRestartType, RestartType, int32, RestartTeamId);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnFootballMatchScoreChanged, int32, TeamZeroScore, int32, TeamOneScore);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(
+    FOnFootballSubstitutionMade,
+    int32, TeamId,
+    AFootballPlayerCharacter*, PlayerOut,
+    AFootballPlayerCharacter*, PlayerIn
+);
 
 /** Match clock, team score and basic referee authority for a two-team offline match. */
 UCLASS(BlueprintType)
@@ -48,6 +54,12 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Football|Pitch", meta = (ClampMin = "100.0"))
     float GoalHeightCm = 244.0f;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Football|Referee", meta = (ClampMin = "250.0", ClampMax = "1800.0"))
+    float AutomaticFoulSpeedThresholdCmPerSec = 760.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Football|Substitutions", meta = (ClampMin = "1", ClampMax = "11"))
+    int32 MaxSubstitutionsPerTeam = 5;
+
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Football|Match")
     EFootballMatchPeriod CurrentPeriod = EFootballMatchPeriod::PreMatch;
 
@@ -62,6 +74,12 @@ public:
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Football|Score")
     int32 TeamOneScore = 0;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Football|Substitutions")
+    int32 TeamZeroSubstitutionsUsed = 0;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Football|Substitutions")
+    int32 TeamOneSubstitutionsUsed = 0;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Football|Referee")
     bool bRestartPending = false;
@@ -80,6 +98,9 @@ public:
 
     UPROPERTY(BlueprintAssignable, Category = "Football|Score")
     FOnFootballMatchScoreChanged OnScoreChanged;
+
+    UPROPERTY(BlueprintAssignable, Category = "Football|Substitutions")
+    FOnFootballSubstitutionMade OnSubstitutionMade;
 
     UFUNCTION(BlueprintPure, Category = "Football|Match")
     bool IsMatchActive() const;
@@ -104,6 +125,19 @@ public:
     void SignalFoul(AFootballPlayerCharacter* Offender, const FVector& FoulLocation, bool bInsidePenaltyArea);
 
     UFUNCTION(BlueprintCallable, Category = "Football|Referee")
+    void ReportContestContact(
+        AFootballPlayerCharacter* FirstPlayer,
+        AFootballPlayerCharacter* SecondPlayer,
+        float RelativeSpeedCmPerSec
+    );
+
+    UFUNCTION(BlueprintCallable, Category = "Football|Substitutions")
+    bool RequestSubstitution(
+        AFootballPlayerCharacter* PlayerOut,
+        TSubclassOf<AFootballPlayerCharacter> ReplacementClass
+    );
+
+    UFUNCTION(BlueprintCallable, Category = "Football|Referee")
     bool NotifyRestartTaken(AFootballPlayerCharacter* RestartingPlayer);
 
 protected:
@@ -118,6 +152,7 @@ private:
 
     FTimerHandle HalfTimeTimer;
     float CurrentPeriodElapsedSeconds = 0.0f;
+    float LastAutomaticFoulTimeSeconds = -1000.0f;
     TSet<TWeakObjectPtr<AFootballPlayerCharacter>> OffsideCandidates;
 
     UFUNCTION()
