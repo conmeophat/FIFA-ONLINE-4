@@ -91,12 +91,15 @@ private:
     float DecisionAccumulator = 0.0f;
     float ContestCooldown = 0.0f;
     float TacticalActionCooldown = 0.0f;
+    float PhaseTransitionRemaining = 0.0f;
+    EFootballMatchPhase LastStableMatchPhase = EFootballMatchPhase::Attacking;
     FVector HomeLocation = FVector::ZeroVector;
     FVector CachedMoveTarget = FVector::ZeroVector;
     bool bHasCachedMoveTarget = false;
     TArray<TWeakObjectPtr<AFootballPlayerCharacter>> CachedTeammates;
 
     void UpdateTeamDecision();
+    void SetMatchPhase(EFootballMatchPhase DesiredPhase);
     void ApplyCachedSteering();
     void GatherFootballers(TArray<AFootballPlayerCharacter*>& OutPlayers) const;
     AFootballPlayerCharacter* FindClosestPlayer(
