@@ -185,7 +185,7 @@ void AFootballMatchDirector::BuildOffsideSnapshot(AFootballPlayerCharacter* Pass
 
 bool AFootballMatchDirector::NotifyBallTouched(AFootballPlayerCharacter* Player)
 {
-    if (!IsValid(Player) || bRestartPending || OffsideCandidates.IsEmpty()) return false;
+    if (!IsValid(Player) || bRestartPending || OffsideCandidates.Num() == 0) return false;
     if (OffsideCandidates.Contains(TWeakObjectPtr<AFootballPlayerCharacter>(Player)))
     {
         const int32 AwardedTeam = Player->TeamId == 0 ? 1 : 0;
