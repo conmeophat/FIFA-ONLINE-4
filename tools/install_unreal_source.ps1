@@ -38,6 +38,8 @@ $RequiredFiles = @(
     "FootballStadiumActor.cpp",
     "FootballBroadcastCameraActor.h",
     "FootballBroadcastCameraActor.cpp",
+    "FootballRefereeActor.h",
+    "FootballRefereeActor.cpp",
     "FootballPlayerCharacter.h",
     "FootballPlayerCharacter.cpp",
     "FootballPlayerAnimInstance.h",
@@ -101,7 +103,7 @@ else {
     }
 
     $Addition = [Environment]::NewLine +
-        '        PublicDependencyModuleNames.AddRange(new string[] { "HTTP", "Json", "JsonUtilities", "InputCore", "PhysicsCore", "AIModule" });' +
+        '        PublicDependencyModuleNames.AddRange(new string[] { "HTTP", "Json", "JsonUtilities", "InputCore", "PhysicsCore", "AIModule", "UMG", "Slate", "SlateCore" });' +
         [Environment]::NewLine
     $InsertAt = $ConstructorMatch.Index + $ConstructorMatch.Length
     $BuildContent = $BuildContent.Insert($InsertAt, $Addition)
@@ -174,7 +176,7 @@ if ($MissingMappings.Count -gt 0) {
 }
 
 Write-Host ""
-Write-Host "Football Match Engine v0.9 source installed." -ForegroundColor Green
+Write-Host "Football Match Engine v1.0 source installed." -ForegroundColor Green
 Write-Host "Project: $($UProject.FullName)"
 Write-Host "Module:  $ModuleName"
 Write-Host "Source:  $ModuleSource"
@@ -191,4 +193,7 @@ Write-Host "7. Run build_player_test_level.py to spawn a full 11v11 lineup (one 
 Write-Host "8. Configure MatchClockRate and HalfTimeBreakSeconds on FPO_Match_Director."
 Write-Host "9. The native match HUD displays TEAM 0 / TEAM 1 score, match clock and period."
 Write-Host "10. Tune shoulder-duel reactions in the Animation Blueprint using bIsInShoulderDuel and ContestReactionStrength."
-Write-Host "11. Import licensed goalkeeper catch / dive / distribution animations; the current catch is physical attachment, not an authored hand animation."
+Write-Host "11. Import licensed goalkeeper catch / dive / distribution animations; assign the five new contact/keeper Montages in your player defaults."
+Write-Host "12. The Match Director supports automatic high-speed ball-carrier contact fouls and up to five substitutions per team."
+Write-Host "13. Use the Blueprint function RequestSubstitution(PlayerOut, ReplacementClass) during either half or half-time."
+Write-Host "14. The test builder spawns the ball-tracking TV camera and a non-blocking referee proxy."
