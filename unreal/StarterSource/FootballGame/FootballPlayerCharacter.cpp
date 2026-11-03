@@ -173,6 +173,13 @@ void AFootballPlayerCharacter::Tick(const float DeltaSeconds)
 
     ContestStunRemaining = FMath::Max(0.0f, ContestStunRemaining - DeltaSeconds);
     bIsContestStunned = ContestStunRemaining > 0.0f;
+    ContestReactionRemaining = FMath::Max(0.0f, ContestReactionRemaining - DeltaSeconds);
+    bIsInShoulderDuel = ContestReactionRemaining > 0.0f;
+    ContestReactionStrength = FMath::FInterpTo(
+        ContestReactionStrength, bIsInShoulderDuel ? ContestReactionStrength : 0.0f,
+        DeltaSeconds, 5.0f
+    );
+    UpdatePlayerContests(DeltaSeconds);
 
     UpdateBalance(DeltaSeconds);
     UpdateFootballFacing(DeltaSeconds);
@@ -468,6 +475,13 @@ void AFootballPlayerCharacter::ApplyContestImpact(
         return;
     }
 
+    ContestReactionRemaining = FMath::Max(ContestReactionRemaining, 0.34f);
+    bIsInShoulderDuel = true;
+    ContestReactionStrength = FMath::Max(
+        ContestReactionStrength,
+        FMath::Clamp(ImpulseCmPerSec / 260.0f, 0.15f, 1.0f)
+    );
+
     const float Resistance = bIsBracing
         ? FMath::Clamp(BraceContestResistance, 0.0f, 0.9f)
         : 0.0f;
@@ -493,6 +507,66 @@ void AFootballPlayerCharacter::ApplyContestImpact(
     bIsContestStunned = true;
     bIsOffBalance = Balance < 0.42f;
     UpdateDynamicMovementTuning();
+}
+
+void AFootballPlayerCharacter::UpdatePlayerContests(const float DeltaSeconds)
+{
+    if (!bEnableAutomaticPlayerContests || !GetWorld())
+    {
+        return;
+    }
+
+    PlayerContestCooldown = FMath::Max(0.0f, PlayerContestCooldown - DeltaSeconds);
+    PlayerContestScanAccumulator -= DeltaSeconds;
+    if (PlayerContestScanAccumulator > 0.0f || PlayerContestCooldown > 0.0f)
+    {
+        return;
+    }
+    PlayerContestScanAccumulator = 0.16f;
+
+    for (TActorIterator<AFootballPlayerCharacter> It(GetWorld()); It; ++It)
+    {
+        AFootballPlayerCharacter* Opponent = *It;
+        if (!IsValid(Opponent) || Opponent == this || Opponent->TeamId == TeamId)
+        {
+            continue;
+        }
+
+        // One deterministic initiator per pair prevents duplicate impulses.
+        if (GetUniqueID() > Opponent->GetUniqueID())
+        {
+            continue;
+        }
+
+        const FVector Separation = GetActorLocation() - Opponent->GetActorLocation();
+        const float Distance = Separation.Size2D();
+        if (Distance > FMath::Max(70.0f, ContestContactRadiusCm))
+        {
+            continue;
+        }
+
+        const FVector RelativeVelocity = GetVelocity() - Opponent->GetVelocity();
+        const float RelativeSpeed = RelativeVelocity.Size2D();
+        const bool bBallCarrierInvolved = bHasBallControl || Opponent->bHasBallControl;
+        if (RelativeSpeed < 100.0f && !bIsBracing && !Opponent->bIsBracing && !bBallCarrierInvolved)
+        {
+            continue;
+        }
+
+        FVector PushDirection = Separation.GetSafeNormal2D();
+        if (PushDirection.IsNearlyZero())
+        {
+            PushDirection = GetActorRightVector();
+        }
+
+        const float Impact = FMath::Clamp(65.0f + RelativeSpeed * 0.24f +
+            (bBallCarrierInvolved ? 48.0f : 0.0f), 65.0f, 235.0f);
+        const float Damage = bBallCarrierInvolved ? 0.085f : 0.055f;
+        ApplyContestImpact(PushDirection, Impact, Damage);
+        Opponent->ApplyContestImpact(-PushDirection, Impact, Damage);
+        PlayerContestCooldown = 0.82f;
+        break;
+    }
 }
 
 void AFootballPlayerCharacter::UpdateBalance(const float DeltaSeconds)
