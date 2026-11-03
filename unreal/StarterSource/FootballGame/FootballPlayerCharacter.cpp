@@ -463,6 +463,66 @@ bool AFootballPlayerCharacter::TryExecuteAITacticalKick(
     return true;
 }
 
+void AFootballPlayerCharacter::PlayShoulderDuelMontage()
+{
+    PlayConfiguredMontage(ShoulderDuelMontage, EFootballAnimationCue::ShoulderDuel);
+}
+
+void AFootballPlayerCharacter::PlayFoulReactionMontage()
+{
+    PlayConfiguredMontage(FoulReactionMontage, EFootballAnimationCue::FoulReaction);
+}
+
+void AFootballPlayerCharacter::PlayGoalkeeperCatchMontage()
+{
+    PlayConfiguredMontage(GoalkeeperCatchMontage, EFootballAnimationCue::GoalkeeperCatch);
+}
+
+void AFootballPlayerCharacter::PlayGoalkeeperDiveMontage()
+{
+    PlayConfiguredMontage(GoalkeeperDiveMontage, EFootballAnimationCue::GoalkeeperDive);
+}
+
+void AFootballPlayerCharacter::PlayGoalkeeperDistributionMontage()
+{
+    PlayConfiguredMontage(GoalkeeperDistributionMontage, EFootballAnimationCue::GoalkeeperDistribution);
+}
+
+void AFootballPlayerCharacter::PlayConfiguredMontage(
+    UAnimMontage* Montage,
+    const EFootballAnimationCue Cue
+)
+{
+    ActiveAnimationCue = Cue;
+    GetWorldTimerManager().ClearTimer(AnimationCueTimer);
+
+    float CueDuration = 0.55f;
+    if (IsValid(Montage) && GetMesh())
+    {
+        if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
+        {
+            const float PlayedDuration = AnimInstance->Montage_Play(Montage, 1.0f);
+            if (PlayedDuration > 0.0f)
+            {
+                CueDuration = FMath::Max(0.2f, PlayedDuration);
+            }
+        }
+    }
+
+    GetWorldTimerManager().SetTimer(
+        AnimationCueTimer,
+        this,
+        &AFootballPlayerCharacter::ClearAnimationCue,
+        CueDuration,
+        false
+    );
+}
+
+void AFootballPlayerCharacter::ClearAnimationCue()
+{
+    ActiveAnimationCue = EFootballAnimationCue::None;
+}
+
 void AFootballPlayerCharacter::ApplyContestImpact(
     const FVector& ImpactDirection,
     const float ImpulseCmPerSec,
@@ -475,6 +535,7 @@ void AFootballPlayerCharacter::ApplyContestImpact(
         return;
     }
 
+    PlayShoulderDuelMontage();
     ContestReactionRemaining = FMath::Max(ContestReactionRemaining, 0.34f);
     bIsInShoulderDuel = true;
     ContestReactionStrength = FMath::Max(
@@ -564,6 +625,15 @@ void AFootballPlayerCharacter::UpdatePlayerContests(const float DeltaSeconds)
         const float Damage = bBallCarrierInvolved ? 0.085f : 0.055f;
         ApplyContestImpact(PushDirection, Impact, Damage);
         Opponent->ApplyContestImpact(-PushDirection, Impact, Damage);
+
+        for (TActorIterator<AFootballMatchDirector> DirectorIt(GetWorld()); DirectorIt; ++DirectorIt)
+        {
+            if (IsValid(*DirectorIt))
+            {
+                DirectorIt->ReportContestContact(this, Opponent, RelativeSpeed);
+                break;
+            }
+        }
         PlayerContestCooldown = 0.82f;
         break;
     }
