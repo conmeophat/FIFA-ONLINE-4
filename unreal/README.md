@@ -24,8 +24,8 @@ The script:
 - Finds the Unreal \`.uproject\` recursively under \`unreal/\`.
 - Copies the API bridge, stadium, broadcast camera, player character, animation instance, physics ball, shared gameplay types and football contact Anim Notify C++ files into the generated Runtime module.
 - Rewrites the API export macro and reflected Python class paths to match the module name.
-- Ensures HTTP, JSON and InputCore module dependencies exist.
-- Merges keyboard/mouse and common gamepad axis/action mappings into \`Config/DefaultInput.ini\`.
+- Ensures HTTP, JSON, InputCore and PhysicsCore module dependencies exist.
+- Merges keyboard/mouse and common gamepad movement, brace / contest and ball-action mappings into \`Config/DefaultInput.ini\`.
 - Copies both Editor Python builder scripts.
 
 Then regenerate project files and build the **Development Editor** target in Visual Studio. Reopen the project after a successful local build. The C++ source has not been compiled in this repository's cloud environment.
@@ -47,6 +47,7 @@ See the [stadium and camera guide](../docs/STADIUM_BROADCAST_CAMERA.md).
 4. Press Play and use WASD/mouse, Left Shift and Space.
 5. For detailed controls, rigged mesh import and Animation Blueprint setup, read [Football Player Engine v0.2](../docs/PLAYER_ENGINE_V0_2.md).
 6. For the physics ball, dribble assist, passing, shooting and goal detection, read [Football Ball Engine v0.3](../docs/FOOTBALL_BALL_ENGINE_V0_3.md).
+7. For body turning, inertia, balance, brace and contest response, read [Football Player Control Engine v0.5](../docs/FOOTBALL_PLAYER_CONTROL_V0_5.md).
 
 The footballer has a primitive mannequin proxy until a compatible Skeletal Mesh is assigned. The test builder also spawns a physics ball near the player. For socket setup, contact notifies and montage wiring, read [Football Contact & Animation Engine v0.4](../docs/FOOTBALL_CONTACT_ANIMATION_V0_4.md). Use only character models, kits, animations and likenesses you are licensed to use.
 

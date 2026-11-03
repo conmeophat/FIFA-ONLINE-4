@@ -80,8 +80,56 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Football|Animation", meta = (ClampMin = "0.0"))
     float ActionContactFallbackDelay = 0.22f;
 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Football|Movement", meta = (ClampMin = "30.0"))
+    float WalkingTurnRateDegreesPerSec = 560.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Football|Movement", meta = (ClampMin = "30.0"))
+    float SprintTurnRateDegreesPerSec = 380.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Football|Movement", meta = (ClampMin = "100.0"))
+    float BallFacingRangeCm = 600.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Football|Movement", meta = (ClampMin = "0.0", ClampMax = "0.8"))
+    float DirectionChangeSpeedLoss = 0.38f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Football|Balance", meta = (ClampMin = "100.0"))
+    float LateralAccelerationBalanceThreshold = 1450.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Football|Balance", meta = (ClampMin = "0.0"))
+    float BalanceLossPerSecondAtThreshold = 0.28f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Football|Balance", meta = (ClampMin = "0.0"))
+    float BalanceRecoveryPerSecond = 0.34f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Football|Balance", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+    float BraceContestResistance = 0.58f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Football|Balance", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+    float BraceMovementMultiplier = 0.62f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Football|Balance", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+    float OffBalanceSpeedMultiplier = 0.58f;
+
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Football|Movement")
     bool bIsSprinting = false;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Football|Movement")
+    bool bIsChangingDirection = false;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Football|Balance")
+    bool bIsBracing = false;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Football|Balance")
+    bool bIsOffBalance = false;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Football|Balance")
+    bool bIsContestStunned = false;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Football|Balance", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+    float Balance = 1.0f;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Football|Balance")
+    EFootballBalanceState BalanceState = EFootballBalanceState::Stable;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Football|Ball Control")
     bool bHasBallControl = false;
@@ -107,6 +155,17 @@ public:
 
     UFUNCTION(BlueprintPure, Category = "Football|Ball")
     FVector GetBallContactLocation(EFootballContactFoot ContactFoot) const;
+
+    /**
+     * Called by an opponent / overlap / tackle system when a contest contact occurs.
+     * ImpulseCmPerSec is applied as a velocity change; brace reduces both push and balance loss.
+     */
+    UFUNCTION(BlueprintCallable, Category = "Football|Contest")
+    void ApplyContestImpact(
+        const FVector& ImpactDirection,
+        float ImpulseCmPerSec,
+        float BalanceDamage
+    );
 
 protected:
     virtual void OnConstruction(const FTransform& Transform) override;
@@ -155,6 +214,8 @@ private:
     float BallSearchAccumulator = 0.0f;
     float BallControlLockout = 0.0f;
     float DribbleTouchAccumulator = 0.0f;
+    float ContestStunRemaining = 0.0f;
+    FVector PreviousVelocity = FVector::ZeroVector;
 
     EFootballContactFoot LastDribbleFoot = EFootballContactFoot::Right;
 
@@ -181,4 +242,9 @@ private:
 
     void RefreshAppearance();
     void UpdateSprintSpeed();
+    void UpdateFootballFacing(float DeltaSeconds);
+    void UpdateBalance(float DeltaSeconds);
+    void UpdateDynamicMovementTuning();
+    void StartBrace();
+    void StopBrace();
 };

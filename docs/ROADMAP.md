@@ -54,19 +54,30 @@
 - [ ] Import licensed character animation clips, create Montages and place strike notifies
 - [ ] Tune foot socket placement and verify animation timing in local Unreal playtests
 
-## Milestone 5 — Offline match slice
+## Milestone 5 — Football Player Control Engine v0.5
+- [x] Explicit body facing: rotate toward movement input and turn toward a nearby ball when slowing down
+- [x] CharacterMovement acceleration, braking and friction tuning for controllable inertia
+- [x] Direction-change speed penalty and sprint-turn-rate limits
+- [x] Balance model driven by lateral acceleration and sharp sprint turns
+- [x] Brace input reduces contest knockback / balance loss and slows movement
+- [x] Blueprint-callable contest impact API for future opponent / tackle overlap systems
+- [x] Animation Blueprint variables for acceleration, turn angle, balance and contest reaction
+- [ ] Connect opponent / teammate overlap events to ApplyContestImpact in a later AI milestone
+- [ ] Tune all movement values in local Unreal playtests with the imported rig and locomotion animations
+
+## Milestone 6 — Offline match slice
 - [ ] Add goalkeeper and simple teammate/opponent AI
 - [ ] Build restart states (kick-off, goal, throw-in, corner, free kick)
 - [ ] Add substitution and match summary
 - [ ] Profile CPU/GPU and validate stable frame pacing
 
-## Milestone 6 — Football management
+## Milestone 7 — Football management
 - [ ] Connect Unreal to the Python catalogue API
 - [ ] Add squads, formations, player positions and team tactics
 - [ ] Add local saves and career progression
 - [ ] Introduce a licensed, documented real-world data provider only after legal and schema review
 
-## Milestone 7 — Online foundation
+## Milestone 8 — Online foundation
 - [ ] Design account/session services and an authoritative match server
 - [ ] Implement matchmaking and reconnect handling
 - [ ] Add server-side validation, rate limits, logging and anti-cheat controls

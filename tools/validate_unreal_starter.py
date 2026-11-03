@@ -1,7 +1,7 @@
 """Static validation for the Unreal starter bundle.
 
-This checks repository completeness, expected source symbols and Python builder
-syntax. It does NOT compile Unreal C++; that requires Unreal Engine + MSVC on Windows.
+Checks repository completeness and expected symbols plus Python builder syntax.
+This does NOT compile Unreal C++; that requires Unreal Engine + MSVC on Windows.
 """
 
 from pathlib import Path
@@ -30,46 +30,48 @@ REQUIRED_FILES = [
     "docs/PLAYER_ENGINE_V0_2.md",
     "docs/FOOTBALL_BALL_ENGINE_V0_3.md",
     "docs/FOOTBALL_CONTACT_ANIMATION_V0_4.md",
+    "docs/FOOTBALL_PLAYER_CONTROL_V0_5.md",
 ]
 
 REQUIRED_SYMBOLS = {
-    "unreal/StarterSource/FootballGame/FootballBallActor.h": [
-        "PhysicsSphere", "BallMassKg", "OnGoalScored", "ApplyKick",
-        "ApplyKickFromFoot", "ApplyFootTouch",
-    ],
-    "unreal/StarterSource/FootballGame/FootballBallActor.cpp": [
-        "ApplyKickFromFoot", "ApplyFootTouch", "FootTouchRangeCm",
-        "KickContactRangeCm", "RegisterGoal",
-    ],
-    "unreal/StarterSource/FootballGame/FootballGameplayTypes.h": [
-        "EFootballContactFoot", "EFootballBallAction", "ShortPass", "ThroughBall", "Shot",
-    ],
-    "unreal/StarterSource/FootballGame/AnimNotify_FootballBallContact.h": [
-        "UAnimNotify_FootballBallContact", "EFootballContactFoot", "FAnimNotifyEventReference",
-    ],
-    "unreal/StarterSource/FootballGame/AnimNotify_FootballBallContact.cpp": [
-        "MeshComp->GetOwner()", "HandleBallContactNotify", "Super::Notify",
-    ],
     "unreal/StarterSource/FootballGame/FootballPlayerCharacter.h": [
-        "LeftFootContactSocketName", "RightFootContactSocketName",
-        "PassMontage", "ThroughBallMontage", "ShotMontage",
-        "HandleBallContactNotify", "bHasBallControl", "bIsDribbling",
+        "WalkingTurnRateDegreesPerSec", "SprintTurnRateDegreesPerSec",
+        "BallFacingRangeCm", "DirectionChangeSpeedLoss", "Balance",
+        "EFootballBalanceState", "bIsBracing", "bIsOffBalance",
+        "ApplyContestImpact",
     ],
     "unreal/StarterSource/FootballGame/FootballPlayerCharacter.cpp": [
-        "GetBallContactLocation", "ChooseNearestFoot", "QueueBallAction",
-        "Montage_Play", "HandleBallContactNotify", "ApplyFootTouch",
-        "ApplyKickFromFoot", "OnBallContactFallback",
+        "UpdateFootballFacing", "UpdateBalance", "UpdateDynamicMovementTuning",
+        "FMath::FixedTurn", "BrakingDecelerationWalking",
+        "Movement->AddImpulse", "StartBrace", "StopBrace",
+        "bIsChangingDirection", "ContestStunRemaining",
+    ],
+    "unreal/StarterSource/FootballGame/FootballGameplayTypes.h": [
+        "EFootballContactFoot", "EFootballBallAction", "EFootballBalanceState",
+        "Stable", "Bracing", "Recovering", "OffBalance", "ContestStunned",
     ],
     "unreal/StarterSource/FootballGame/FootballPlayerAnimInstance.h": [
-        "bIsDribbling", "bIsPassing", "bIsThroughBall", "bIsShooting",
-        "bIsUsingLeftFoot", "EFootballBallAction",
+        "MovementAcceleration", "TurnAngle", "bIsChangingDirection",
+        "Balance", "bIsOffBalance", "bIsBracing", "bIsContestStunned",
+        "EFootballBalanceState",
+    ],
+    "unreal/StarterSource/FootballGame/FootballPlayerAnimInstance.cpp": [
+        "GetCurrentAcceleration", "Footballer->Balance", "Footballer->bIsBracing",
+        "Footballer->bIsContestStunned", "Footballer->BalanceState",
     ],
     "tools/install_unreal_source.ps1": [
-        "FootballGameplayTypes.h", "AnimNotify_FootballBallContact.cpp",
-        "FootballPlayerCharacter.cpp", "FootballBallActor.cpp", "PhysicsCore",
+        "FootballPlayerCharacter.cpp", "FootballPlayerAnimInstance.cpp",
+        "FootballBallActor.cpp", "PhysicsCore", 'ActionName="Brace"',
+        "Gamepad_RightShoulder",
     ],
-    "unreal/Content/Python/build_player_test_level.py": [
-        "FootballBallActor", "FPO_Ball_Test", "AutoReceiveInput.PLAYER0",
+    "unreal/Config/DefaultInput.ini": [
+        'ActionName="Brace"', "Key=LeftControl", "Key=Gamepad_RightShoulder",
+    ],
+    "unreal/StarterSource/FootballGame/FootballBallActor.cpp": [
+        "ApplyKickFromFoot", "ApplyFootTouch", "RegisterGoal",
+    ],
+    "unreal/StarterSource/FootballGame/AnimNotify_FootballBallContact.cpp": [
+        "HandleBallContactNotify",
     ],
 }
 
@@ -99,7 +101,9 @@ def main() -> int:
             try:
                 compile(source, str(path), "exec")
             except SyntaxError as exc:
-                failures.append(f"{relative}: Python syntax error at line {exc.lineno}: {exc.msg}")
+                failures.append(
+                    f"{relative}: Python syntax error at line {exc.lineno}: {exc.msg}"
+                )
 
     if failures:
         print("Unreal starter validation: FAILED")
@@ -108,7 +112,8 @@ def main() -> int:
         return 1
 
     print("Unreal starter validation: OK")
-    print("Ball physics, foot socket contact, Anim Notify and action state: OK")
+    print("Player inertia, turn control, balance and contest reaction: OK")
+    print("v0.4 ball contact / animation integration: OK")
     print("Unreal Editor Python builder syntax: OK")
     print("Note: this is not an Unreal/MSVC C++ build.")
     return 0

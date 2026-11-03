@@ -19,3 +19,14 @@ enum class EFootballBallAction : uint8
     ThroughBall UMETA(DisplayName = "Through ball"),
     Shot UMETA(DisplayName = "Shot")
 };
+
+
+UENUM(BlueprintType)
+enum class EFootballBalanceState : uint8
+{
+    Stable UMETA(DisplayName = "Stable"),
+    Bracing UMETA(DisplayName = "Bracing"),
+    Recovering UMETA(DisplayName = "Recovering balance"),
+    OffBalance UMETA(DisplayName = "Off balance"),
+    ContestStunned UMETA(DisplayName = "Contest stunned")
+};

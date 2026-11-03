@@ -17,6 +17,14 @@ void UFootballPlayerAnimInstance::NativeUpdateAnimation(const float DeltaSeconds
         bIsInAir = false;
         bIsSprinting = false;
         bHasMovementInput = false;
+        MovementAcceleration = 0.0f;
+        TurnAngle = 0.0f;
+        bIsChangingDirection = false;
+        Balance = 1.0f;
+        bIsOffBalance = false;
+        bIsBracing = false;
+        bIsContestStunned = false;
+        BalanceState = EFootballBalanceState::Stable;
         bHasBallControl = false;
         bIsDribbling = false;
         bIsBallActionActive = false;
@@ -51,12 +59,20 @@ void UFootballPlayerAnimInstance::NativeUpdateAnimation(const float DeltaSeconds
         if (const UCharacterMovementComponent* Movement = Character->GetCharacterMovement())
         {
             bIsInAir = Movement->IsFalling();
+            MovementAcceleration = Movement->GetCurrentAcceleration().Size2D();
         }
     }
 
     if (const AFootballPlayerCharacter* Footballer = Cast<AFootballPlayerCharacter>(Pawn))
     {
         bIsSprinting = Footballer->bIsSprinting;
+        bIsChangingDirection = Footballer->bIsChangingDirection;
+        Balance = Footballer->Balance;
+        bIsOffBalance = Footballer->bIsOffBalance;
+        bIsBracing = Footballer->bIsBracing;
+        bIsContestStunned = Footballer->bIsContestStunned;
+        BalanceState = Footballer->BalanceState;
+        TurnAngle = Footballer->GetMovementDirection();
         bHasBallControl = Footballer->bHasBallControl;
         bIsDribbling = Footballer->bIsDribbling;
         BallAction = Footballer->ActiveBallAction;

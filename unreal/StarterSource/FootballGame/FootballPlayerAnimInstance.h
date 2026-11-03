@@ -35,6 +35,30 @@ public:
     UPROPERTY(BlueprintReadOnly, Category = "Football|Animation")
     bool bHasMovementInput = false;
 
+    UPROPERTY(BlueprintReadOnly, Category = "Football|Movement")
+    float MovementAcceleration = 0.0f;
+
+    UPROPERTY(BlueprintReadOnly, Category = "Football|Movement")
+    float TurnAngle = 0.0f;
+
+    UPROPERTY(BlueprintReadOnly, Category = "Football|Movement")
+    bool bIsChangingDirection = false;
+
+    UPROPERTY(BlueprintReadOnly, Category = "Football|Balance")
+    float Balance = 1.0f;
+
+    UPROPERTY(BlueprintReadOnly, Category = "Football|Balance")
+    bool bIsOffBalance = false;
+
+    UPROPERTY(BlueprintReadOnly, Category = "Football|Balance")
+    bool bIsBracing = false;
+
+    UPROPERTY(BlueprintReadOnly, Category = "Football|Balance")
+    bool bIsContestStunned = false;
+
+    UPROPERTY(BlueprintReadOnly, Category = "Football|Balance")
+    EFootballBalanceState BalanceState = EFootballBalanceState::Stable;
+
     UPROPERTY(BlueprintReadOnly, Category = "Football|Ball Control")
     bool bHasBallControl = false;
 

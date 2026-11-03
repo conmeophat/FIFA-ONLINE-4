@@ -38,7 +38,7 @@ AFootballPlayerCharacter::AFootballPlayerCharacter()
     Movement->GroundFriction = 8.0f;
     Movement->BrakingFrictionFactor = 2.0f;
     Movement->bUseSeparateBrakingFriction = true;
-    Movement->bOrientRotationToMovement = true;
+    Movement->bOrientRotationToMovement = false;
     Movement->RotationRate = FRotator(0.0f, 620.0f, 0.0f);
     Movement->JumpZVelocity = 420.0f;
     Movement->AirControl = 0.25f;
@@ -169,6 +169,14 @@ void AFootballPlayerCharacter::Tick(const float DeltaSeconds)
         bHasBallControl = false;
         bIsDribbling = false;
     }
+
+    ContestStunRemaining = FMath::Max(0.0f, ContestStunRemaining - DeltaSeconds);
+    bIsContestStunned = ContestStunRemaining > 0.0f;
+
+    UpdateBalance(DeltaSeconds);
+    UpdateFootballFacing(DeltaSeconds);
+    UpdateDynamicMovementTuning();
+    PreviousVelocity = GetVelocity();
 }
 
 void AFootballPlayerCharacter::OnConstruction(const FTransform& Transform)
@@ -194,6 +202,8 @@ void AFootballPlayerCharacter::BeginPlay()
         }
     }
 
+    PreviousVelocity = GetVelocity();
+    PreviousVelocity = GetVelocity();
     RefreshAppearance();
 }
 
@@ -235,6 +245,12 @@ void AFootballPlayerCharacter::SetupPlayerInputComponent(UInputComponent* Player
     );
     PlayerInputComponent->BindAction(
         TEXT("Shoot"), IE_Pressed, this, &AFootballPlayerCharacter::StartShot
+    );
+    PlayerInputComponent->BindAction(
+        TEXT("Brace"), IE_Pressed, this, &AFootballPlayerCharacter::StartBrace
+    );
+    PlayerInputComponent->BindAction(
+        TEXT("Brace"), IE_Released, this, &AFootballPlayerCharacter::StopBrace
     );
 }
 
@@ -290,17 +306,264 @@ void AFootballPlayerCharacter::StopJump()
     StopJumping();
 }
 
-void AFootballPlayerCharacter::UpdateSprintSpeed()
+void AFootballPlayerCharacter::StartBrace()
 {
+    bIsBracing = true;
+    UpdateDynamicMovementTuning();
+}
+
+void AFootballPlayerCharacter::StopBrace()
+{
+    bIsBracing = false;
+    UpdateDynamicMovementTuning();
+}
+
+void AFootballPlayerCharacter::ApplyContestImpact(
+    const FVector& ImpactDirection,
+    const float ImpulseCmPerSec,
+    const float BalanceDamage
+)
+{
+    const FVector SafeDirection = ImpactDirection.GetSafeNormal2D();
+    if (SafeDirection.IsNearlyZero())
+    {
+        return;
+    }
+
+    const float Resistance = bIsBracing
+        ? FMath::Clamp(BraceContestResistance, 0.0f, 0.9f)
+        : 0.0f;
+    const float RemainingImpact = 1.0f - Resistance;
+
     if (UCharacterMovementComponent* Movement = GetCharacterMovement())
     {
-        const float SafeMultiplier = FMath::Max(1.0f, SprintSpeedMultiplier);
-        Movement->MaxWalkSpeed = bIsSprinting
-            ? WalkSpeedCmPerSec * SafeMultiplier
-            : WalkSpeedCmPerSec;
-        Movement->MaxAcceleration = AccelerationCmPerSec2;
-        Movement->BrakingDecelerationWalking = BrakingDecelerationCmPerSec2;
+        const float SafeImpulse = FMath::Clamp(ImpulseCmPerSec, 0.0f, 1100.0f);
+        Movement->AddImpulse(SafeDirection * SafeImpulse * RemainingImpact, true);
     }
+
+    const float SafeDamage = FMath::Clamp(BalanceDamage, 0.0f, 0.8f);
+    Balance = FMath::Clamp(
+        Balance - SafeDamage * RemainingImpact,
+        0.0f,
+        1.0f
+    );
+
+    ContestStunRemaining = FMath::Max(
+        ContestStunRemaining,
+        0.12f + FMath::Clamp(ImpulseCmPerSec, 0.0f, 1100.0f) / 3200.0f
+    );
+    bIsContestStunned = true;
+    bIsOffBalance = Balance < 0.42f;
+    UpdateDynamicMovementTuning();
+}
+
+void AFootballPlayerCharacter::UpdateBalance(const float DeltaSeconds)
+{
+    if (DeltaSeconds <= KINDA_SMALL_NUMBER)
+    {
+        return;
+    }
+
+    const FVector CurrentVelocity = GetVelocity();
+    FVector VelocityDelta = (CurrentVelocity - PreviousVelocity) / DeltaSeconds;
+    VelocityDelta.Z = 0.0f;
+    const FVector VelocityDirection = CurrentVelocity.GetSafeNormal2D();
+    const FVector LateralAcceleration = VelocityDirection.IsNearlyZero()
+        ? VelocityDelta
+        : VelocityDelta - VelocityDirection * FVector::DotProduct(
+            VelocityDelta,
+            VelocityDirection
+        );
+
+    const float CurrentSpeed = CurrentVelocity.Size2D();
+    const float ReferenceSpeed = FMath::Max(
+        WalkSpeedCmPerSec,
+        WalkSpeedCmPerSec * FMath::Max(1.0f, SprintSpeedMultiplier)
+    );
+    const float SpeedFactor = FMath::Clamp(CurrentSpeed / ReferenceSpeed, 0.0f, 1.0f);
+    const float LateralRatio = FMath::Clamp(
+        LateralAcceleration.Size() / FMath::Max(1.0f, LateralAccelerationBalanceThreshold),
+        0.0f,
+        2.5f
+    );
+
+    float BalanceLoss = LateralRatio * BalanceLossPerSecondAtThreshold *
+        SpeedFactor * DeltaSeconds;
+
+    if (bIsSprinting)
+    {
+        BalanceLoss *= 1.18f;
+    }
+    if (bIsBracing)
+    {
+        BalanceLoss *= 0.45f;
+    }
+    if (bHasBallControl)
+    {
+        BalanceLoss *= 0.92f;
+    }
+
+    Balance = FMath::Clamp(Balance - BalanceLoss, 0.0f, 1.0f);
+
+    const float RecoveryRate = BalanceRecoveryPerSecond *
+        (bIsBracing ? 1.55f : 1.0f);
+    if (BalanceLoss <= KINDA_SMALL_NUMBER && !bIsContestStunned)
+    {
+        Balance = FMath::Clamp(Balance + RecoveryRate * DeltaSeconds, 0.0f, 1.0f);
+    }
+
+    const FVector RequestedDirection = GetLastMovementInputVector().GetSafeNormal2D();
+    const float Alignment = (
+        VelocityDirection.IsNearlyZero() || RequestedDirection.IsNearlyZero()
+    )
+        ? 1.0f
+        : FVector::DotProduct(VelocityDirection, RequestedDirection);
+
+    bIsChangingDirection = CurrentSpeed > 170.0f &&
+        !RequestedDirection.IsNearlyZero() &&
+        Alignment < 0.72f;
+
+    if (bIsChangingDirection && bIsSprinting && !bIsBracing)
+    {
+        const float ExtraTurnStress = FMath::Clamp(
+            (0.72f - Alignment) * 0.35f,
+            0.0f,
+            0.35f
+        );
+        Balance = FMath::Clamp(
+            Balance - ExtraTurnStress * DeltaSeconds,
+            0.0f,
+            1.0f
+        );
+    }
+
+    bIsOffBalance = Balance < 0.38f || bIsContestStunned;
+
+    if (bIsContestStunned)
+    {
+        BalanceState = EFootballBalanceState::ContestStunned;
+    }
+    else if (bIsBracing)
+    {
+        BalanceState = EFootballBalanceState::Bracing;
+    }
+    else if (bIsOffBalance)
+    {
+        BalanceState = EFootballBalanceState::OffBalance;
+    }
+    else if (Balance < 0.96f)
+    {
+        BalanceState = EFootballBalanceState::Recovering;
+    }
+    else
+    {
+        BalanceState = EFootballBalanceState::Stable;
+    }
+}
+
+void AFootballPlayerCharacter::UpdateFootballFacing(const float DeltaSeconds)
+{
+    if (DeltaSeconds <= KINDA_SMALL_NUMBER || bIsContestStunned)
+    {
+        return;
+    }
+
+    const FVector RequestedDirection = GetLastMovementInputVector().GetSafeNormal2D();
+    const float CurrentSpeed = GetVelocity().Size2D();
+    FVector DesiredFacing = FVector::ZeroVector;
+
+    if (!RequestedDirection.IsNearlyZero())
+    {
+        DesiredFacing = RequestedDirection;
+    }
+    else if (IsValid(ControlledBall) &&
+        FVector::DistSquared2D(GetActorLocation(), ControlledBall->GetActorLocation()) <=
+            FMath::Square(BallFacingRangeCm) &&
+        CurrentSpeed < 260.0f)
+    {
+        DesiredFacing = (
+            ControlledBall->GetActorLocation() - GetActorLocation()
+        ).GetSafeNormal2D();
+    }
+    else if (CurrentSpeed > 45.0f)
+    {
+        DesiredFacing = GetVelocity().GetSafeNormal2D();
+    }
+
+    if (DesiredFacing.IsNearlyZero())
+    {
+        return;
+    }
+
+    const float TurnRate = bIsSprinting
+        ? SprintTurnRateDegreesPerSec
+        : WalkingTurnRateDegreesPerSec;
+    const float BalanceTurnScale = FMath::Lerp(0.55f, 1.0f, Balance);
+    const float BraceTurnScale = bIsBracing ? 0.72f : 1.0f;
+    const float TargetYaw = DesiredFacing.Rotation().Yaw;
+    const float NewYaw = FMath::FixedTurn(
+        GetActorRotation().Yaw,
+        TargetYaw,
+        TurnRate * BalanceTurnScale * BraceTurnScale * DeltaSeconds
+    );
+
+    SetActorRotation(FRotator(0.0f, NewYaw, 0.0f));
+}
+
+void AFootballPlayerCharacter::UpdateDynamicMovementTuning()
+{
+    UCharacterMovementComponent* Movement = GetCharacterMovement();
+    if (!Movement)
+    {
+        return;
+    }
+
+    const float BaseSpeed = bIsSprinting
+        ? WalkSpeedCmPerSec * FMath::Max(1.0f, SprintSpeedMultiplier)
+        : WalkSpeedCmPerSec;
+
+    float TurnSpeedScale = 1.0f;
+    const FVector VelocityDirection = GetVelocity().GetSafeNormal2D();
+    const FVector RequestedDirection = GetLastMovementInputVector().GetSafeNormal2D();
+
+    if (!VelocityDirection.IsNearlyZero() && !RequestedDirection.IsNearlyZero())
+    {
+        const float Alignment = FVector::DotProduct(
+            VelocityDirection,
+            RequestedDirection
+        );
+        const float TurnSeverity = FMath::Clamp(
+            (1.0f - Alignment) * 0.5f,
+            0.0f,
+            1.0f
+        );
+        TurnSpeedScale = 1.0f -
+            FMath::Clamp(DirectionChangeSpeedLoss, 0.0f, 0.8f) * TurnSeverity;
+    }
+
+    const float BalanceScale = FMath::Lerp(
+        FMath::Clamp(OffBalanceSpeedMultiplier, 0.1f, 1.0f),
+        1.0f,
+        Balance
+    );
+    const float BraceScale = bIsBracing
+        ? FMath::Clamp(BraceMovementMultiplier, 0.1f, 1.0f)
+        : 1.0f;
+    const float ContestScale = bIsContestStunned ? 0.34f : 1.0f;
+
+    Movement->MaxWalkSpeed = BaseSpeed * TurnSpeedScale *
+        BalanceScale * BraceScale * ContestScale;
+    Movement->MaxAcceleration = AccelerationCmPerSec2 *
+        FMath::Lerp(0.55f, 1.0f, Balance) *
+        (bIsBracing ? 0.72f : 1.0f);
+    Movement->BrakingDecelerationWalking = BrakingDecelerationCmPerSec2;
+    Movement->GroundFriction = bIsBracing ? 11.0f : 8.0f;
+    Movement->BrakingFrictionFactor = bIsBracing ? 2.7f : 2.0f;
+}
+
+void AFootballPlayerCharacter::UpdateSprintSpeed()
+{
+    UpdateDynamicMovementTuning();
 }
 
 void AFootballPlayerCharacter::RefreshAppearance()
@@ -417,7 +680,7 @@ void AFootballPlayerCharacter::RefreshNearbyBall()
         return;
     }
 
-    constexpr float SearchRangeCm = 300.0f;
+    const float SearchRangeCm = FMath::Max(300.0f, BallFacingRangeCm);
     float BestDistanceSquared = FMath::Square(SearchRangeCm);
     AFootballBallActor* BestBall = nullptr;
 
@@ -453,10 +716,23 @@ void AFootballPlayerCharacter::UpdateBallControl(const float DeltaSeconds)
     }
 
     const FVector ToBall = ControlledBall->GetActorLocation() - GetActorLocation();
-    if (ToBall.SizeSquared2D() > FMath::Square(300.0f) ||
-        FVector::DotProduct(GetActorForwardVector(), ToBall.GetSafeNormal2D()) < -0.35f)
+    if (ToBall.SizeSquared2D() > FMath::Square(BallFacingRangeCm))
     {
         ControlledBall = nullptr;
+        bHasBallControl = false;
+        bIsDribbling = false;
+        return;
+    }
+
+    const bool bBallWithinFootControlRange =
+        ToBall.SizeSquared2D() <= FMath::Square(300.0f);
+    const bool bBallInFront =
+        FVector::DotProduct(GetActorForwardVector(), ToBall.GetSafeNormal2D()) >= -0.35f;
+
+    if (!bBallWithinFootControlRange || !bBallInFront)
+    {
+        // Keep tracking the ball at a wider radius so the body can turn toward
+        // it, but do not apply close-control touches until it is in front and near.
         bHasBallControl = false;
         bIsDribbling = false;
         return;
@@ -526,7 +802,7 @@ float AFootballPlayerCharacter::PlayBallActionMontage(const EFootballBallAction 
 
 void AFootballPlayerCharacter::QueueBallAction(const EFootballBallAction Action)
 {
-    if (PendingBallAction != EFootballBallAction::None)
+    if (bIsContestStunned || PendingBallAction != EFootballBallAction::None)
     {
         return;
     }
@@ -640,6 +916,12 @@ void AFootballPlayerCharacter::ExecutePendingBallAction(
     default:
         return;
     }
+
+    // A player who is off balance can still attempt the action, but loses some
+    // strike power. A direct contest stun blocks starting a fresh action above.
+    const float BalancePowerScale = FMath::Lerp(0.72f, 1.0f, Balance);
+    SpeedCmPerSec *= BalancePowerScale;
+    LiftCmPerSec *= BalancePowerScale;
 
     const FVector FootLocation = GetBallContactLocation(ContactFoot);
     const bool bKicked = ControlledBall->ApplyKickFromFoot(

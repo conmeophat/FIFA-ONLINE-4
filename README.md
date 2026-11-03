@@ -60,6 +60,16 @@ See [Football Ball Engine v0.3](docs/FOOTBALL_BALL_ENGINE_V0_3.md).
 
 See [Football Contact & Animation Engine v0.4](docs/FOOTBALL_CONTACT_ANIMATION_V0_4.md).
 
+### Football Player Control Engine v0.5
+- Explicit body rotation toward the movement direction and nearby ball.
+- CharacterMovement acceleration / braking inertia, turn-rate limits and reduced speed during sharp changes of direction.
+- Balance meter reacts to lateral acceleration and sharp sprint turns.
+- Brace input reduces contest impact and balance damage at the cost of movement speed.
+- Blueprint-callable contest impact hook for future tackles / shoulder challenges.
+- Animation Blueprint variables expose acceleration, turning, balance and contest state.
+
+See [Football Player Control Engine v0.5](docs/FOOTBALL_PLAYER_CONTROL_V0_5.md).
+
 **Important:** these are development blockouts and starter systems, not a finished photoreal stadium or finished football gameplay. Unreal C++ compilation and visual verification still need to happen on the target Windows machine.
 
 ## Run the Python backend (Windows PowerShell)
@@ -110,4 +120,4 @@ The files under data/fixtures are synthetic development fixtures, not real or of
 
 ## Current status
 
-The repository contains the Python API foundation, stadium/camera C++ starter, player movement/animation starter, physics ball, assisted dribbling, passing, through balls, shooting, goal detection, Editor Python builders and a PowerShell installer. The Unreal project must still be generated, compiled and play-tested in the local Unreal Editor + MSVC environment. Actual animation clips and montage assets are not bundled: the v0.4 C++ timing hooks require the user to import licensed animations, add the two foot sockets and place contact notifies. Complete match rules, 11v11 AI, official worldwide roster and online mode are not claimed yet.
+The repository contains the Python API foundation, stadium/camera C++ starter, player movement/animation starter, physics ball, assisted dribbling, passing, through balls, shooting, goal detection, Editor Python builders and a PowerShell installer. The Unreal project must still be generated, compiled and play-tested in the local Unreal Editor + MSVC environment. Actual animation clips and montage assets are not bundled: the v0.4 C++ timing hooks require the user to import licensed animations, add the two foot sockets and place contact notifies. Automatic opponent collision / tackle integration is not yet implemented; the v0.5 contest response is exposed as a Blueprint-callable API for future AI. Complete match rules, 11v11 AI, official worldwide roster and online mode are not claimed yet.
