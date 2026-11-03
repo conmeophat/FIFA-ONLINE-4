@@ -1,0 +1,20 @@
+{
+  "dataset_type": "synthetic-development-fixtures",
+  "leagues": [
+    {
+      "id": "demo_league",
+      "name": "Demo League",
+      "country_code": "XX",
+      "season_label": "DEMO-SEASON",
+      "club_ids": ["demo_blue_fc", "demo_red_fc"],
+      "is_fictional": true,
+      "source": {
+        "provider": "project-generated-fixture",
+        "source_url": null,
+        "license": "synthetic-demo-data",
+        "retrieved_at": null,
+        "verification_status": "synthetic"
+      }
+    }
+  ]
+}
