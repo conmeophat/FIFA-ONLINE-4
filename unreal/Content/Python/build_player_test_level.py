@@ -45,7 +45,7 @@ def main():
     player.set_actor_label("FPO_Player_Test")
     player.set_editor_property(
         "auto_possess_player",
-        unreal.AutoPossessPlayer.PLAYER_0,
+        unreal.AutoReceiveInput.PLAYER0,
     )
 
     # The test player's spring-arm camera is now the active local view.
