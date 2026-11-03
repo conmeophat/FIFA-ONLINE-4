@@ -73,6 +73,9 @@ public:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Football|Referee")
     TObjectPtr<AActor> LastTouchActor = nullptr;
 
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Football|Goalkeeper")
+    bool bIsHeldByGoalkeeper = false;
+
     UPROPERTY(BlueprintAssignable, Category = "Football|Score")
     FOnFootballGoalScored OnGoalScored;
 
@@ -89,6 +92,21 @@ public:
     bool TryGoalkeeperParry(
         const FVector& KeeperLocation, int32 KeeperTeamId, AActor* KeeperActor,
         int32 KeeperAttackDirectionSign, float ReachCm
+    );
+
+    UFUNCTION(BlueprintCallable, Category = "Football|Goalkeeper")
+    bool TryGoalkeeperCatch(
+        const FVector& KeeperLocation, int32 KeeperTeamId, AActor* KeeperActor,
+        int32 KeeperAttackDirectionSign, float ReachCm, float MaxIncomingSpeedCmPerSec
+    );
+
+    UFUNCTION(BlueprintPure, Category = "Football|Goalkeeper")
+    bool IsHeldByGoalkeeper(const AActor* KeeperActor) const;
+
+    UFUNCTION(BlueprintCallable, Category = "Football|Goalkeeper")
+    bool ReleaseFromGoalkeeper(
+        AActor* KeeperActor, const FVector& TargetLocation,
+        float SpeedCmPerSec, float LiftCmPerSec, float SpinDegPerSec
     );
 
     UFUNCTION(BlueprintCallable, Category = "Football|Ball")
@@ -124,6 +142,8 @@ private:
     FTimerHandle GoalResetTimer;
     bool bWaitingForGoalReset = false;
     float LastGoalkeeperParryTime = -1000.0f;
+    float LastGoalkeeperCatchTime = -1000.0f;
+    TWeakObjectPtr<AActor> GoalkeeperHolder;
 
     void CheckForGoal();
     bool IsInsideGoalMouth(const FVector& BallLocation) const;
