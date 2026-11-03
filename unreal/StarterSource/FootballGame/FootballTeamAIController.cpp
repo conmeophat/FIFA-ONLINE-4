@@ -104,6 +104,9 @@ void AFootballTeamAIController::OnPossess(APawn* InPawn)
     }
     DecisionAccumulator = 0.0f;
     TacticalActionCooldown = 0.0f;
+    PhaseTransitionRemaining = 0.55f;
+    LastStableMatchPhase = EFootballMatchPhase::Attacking;
+    CurrentMatchPhase = EFootballMatchPhase::TransitionToAttack;
 }
 
 void AFootballTeamAIController::OnUnPossess()
@@ -123,6 +126,11 @@ void AFootballTeamAIController::Tick(const float DeltaSeconds)
     Super::Tick(DeltaSeconds);
     ContestCooldown = FMath::Max(0.0f, ContestCooldown - DeltaSeconds);
     TacticalActionCooldown = FMath::Max(0.0f, TacticalActionCooldown - DeltaSeconds);
+    if (TacticalActionCooldown <= 0.0f)
+    {
+        CurrentTacticalAction = EFootballTacticalAction::None;
+        CurrentTacticalTarget = nullptr;
+    }
     DecisionAccumulator += DeltaSeconds;
     if (DecisionAccumulator >= FMath::Max(0.05f, DecisionIntervalSeconds))
     {
@@ -443,6 +451,41 @@ bool AFootballTeamAIController::TryTacticalBallAction(
     return false;
 }
 
+void AFootballTeamAIController::SetMatchPhase(const EFootballMatchPhase DesiredPhase)
+{
+    if (DesiredPhase == EFootballMatchPhase::TransitionToAttack ||
+        DesiredPhase == EFootballMatchPhase::TransitionToDefence)
+    {
+        CurrentMatchPhase = DesiredPhase;
+        PhaseTransitionRemaining = FMath::Max(PhaseTransitionRemaining, 0.45f);
+        return;
+    }
+
+    if (DesiredPhase != LastStableMatchPhase)
+    {
+        CurrentMatchPhase = DesiredPhase == EFootballMatchPhase::Attacking
+            ? EFootballMatchPhase::TransitionToAttack
+            : EFootballMatchPhase::TransitionToDefence;
+        LastStableMatchPhase = DesiredPhase;
+        PhaseTransitionRemaining = 0.62f;
+        return;
+    }
+
+    if (PhaseTransitionRemaining > 0.0f)
+    {
+        PhaseTransitionRemaining = FMath::Max(
+            0.0f,
+            PhaseTransitionRemaining - FMath::Max(0.05f, DecisionIntervalSeconds)
+        );
+        if (PhaseTransitionRemaining > 0.0f)
+        {
+            return;
+        }
+    }
+
+    CurrentMatchPhase = DesiredPhase;
+}
+
 void AFootballTeamAIController::UpdateTeamDecision()
 {
     AFootballPlayerCharacter* SelfPlayer = Cast<AFootballPlayerCharacter>(GetPawn());
@@ -498,7 +541,7 @@ void AFootballTeamAIController::UpdateTeamDecision()
 
     if (!IsValid(Ball))
     {
-        CurrentMatchPhase = EFootballMatchPhase::TransitionToAttack;
+        SetMatchPhase(EFootballMatchPhase::TransitionToAttack);
         CurrentTacticalAction = EFootballTacticalAction::None;
         CurrentTacticalTarget = nullptr;
         CurrentTaskState = EFootballAITaskState::RecoverShape;
@@ -542,7 +585,7 @@ void AFootballTeamAIController::UpdateTeamDecision()
     const bool bOwnTeamHasPossession = ClosestToBall->TeamId == TeamId;
     if (bOwnTeamHasPossession)
     {
-        CurrentMatchPhase = EFootballMatchPhase::Attacking;
+        SetMatchPhase(EFootballMatchPhase::Attacking);
 
         if (ClosestToBall == SelfPlayer)
         {
@@ -578,7 +621,7 @@ void AFootballTeamAIController::UpdateTeamDecision()
         return;
     }
 
-    CurrentMatchPhase = EFootballMatchPhase::Defending;
+    SetMatchPhase(EFootballMatchPhase::Defending);
     CurrentTacticalAction = EFootballTacticalAction::None;
     CurrentTacticalTarget = ClosestToBall;
 
