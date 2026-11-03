@@ -9,7 +9,7 @@ void UFootballApiSubsystem::RequestClubs()
     TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request =
         FHttpModule::Get().CreateRequest();
 
-    Request->SetURL(ApiBaseUrl / TEXT("api/v1/clubs"));
+    Request->SetURL(ApiBaseUrl + TEXT("/api/v1/clubs"));
     Request->SetVerb(TEXT("GET"));
     Request->SetHeader(TEXT("Accept"), TEXT("application/json"));
     Request->SetTimeout(10.0f);
@@ -31,6 +31,8 @@ void UFootballApiSubsystem::HandleClubsResponse(
     bool bWasSuccessful
 )
 {
+    (void)Request;
+
     if (!bWasSuccessful || !Response.IsValid())
     {
         OnRequestFailed.Broadcast(TEXT("Backend request failed or timed out."));
