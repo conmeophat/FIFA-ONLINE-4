@@ -1,6 +1,7 @@
 #include "FootballPlayerCharacter.h"
 
 #include "FootballBallActor.h"
+#include "FootballMatchDirector.h"
 
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
@@ -367,6 +368,7 @@ bool AFootballPlayerCharacter::TryExecuteAITacticalKick(
         VisualAction = EFootballBallAction::ThroughBall;
         break;
     case EFootballTacticalAction::Cross:
+    case EFootballTacticalAction::CornerKick:
         SpeedCmPerSec = 1780.0f;
         LiftCmPerSec = 520.0f;
         SpinDegPerSec = 170.0f;
@@ -382,6 +384,22 @@ bool AFootballPlayerCharacter::TryExecuteAITacticalKick(
         SpeedCmPerSec = 2550.0f;
         LiftCmPerSec = 350.0f;
         SpinDegPerSec = 230.0f;
+        VisualAction = EFootballBallAction::Shot;
+        break;
+    case EFootballTacticalAction::ThrowIn:
+        SpeedCmPerSec = 1080.0f; LiftCmPerSec = 500.0f; SpinDegPerSec = 15.0f;
+        VisualAction = EFootballBallAction::ThroughBall;
+        break;
+    case EFootballTacticalAction::GoalKick:
+        SpeedCmPerSec = 2450.0f; LiftCmPerSec = 650.0f; SpinDegPerSec = 110.0f;
+        VisualAction = EFootballBallAction::ThroughBall;
+        break;
+    case EFootballTacticalAction::FreeKick:
+        SpeedCmPerSec = 1850.0f; LiftCmPerSec = 125.0f; SpinDegPerSec = 130.0f;
+        VisualAction = EFootballBallAction::ThroughBall;
+        break;
+    case EFootballTacticalAction::PenaltyKick:
+        SpeedCmPerSec = 2750.0f; LiftCmPerSec = 95.0f; SpinDegPerSec = 210.0f;
         VisualAction = EFootballBallAction::Shot;
         break;
     default:
@@ -405,6 +423,16 @@ bool AFootballPlayerCharacter::TryExecuteAITacticalKick(
     if (!bKicked)
     {
         return false;
+    }
+
+    ControlledBall->RegisterLastTouch(TeamId, this);
+    for (TActorIterator<AFootballMatchDirector> It(GetWorld()); It; ++It)
+    {
+        if (IsValid(*It))
+        {
+            It->NotifyBallPlayed(this, Action);
+            break;
+        }
     }
 
     GetWorldTimerManager().ClearTimer(PendingContactFallbackTimer);
@@ -870,11 +898,23 @@ void AFootballPlayerCharacter::UpdateBallControl(const float DeltaSeconds)
         }
 
         ActiveContactFoot = TouchFoot;
-        ControlledBall->ApplyFootTouch(
-            GetBallContactLocation(TouchFoot),
-            GetActorForwardVector(),
-            GetVelocity()
-        );
+        for (TActorIterator<AFootballMatchDirector> It(GetWorld()); It; ++It)
+        {
+            if (IsValid(*It) && It->NotifyBallTouched(this))
+            {
+                ControlledBall = nullptr;
+                bHasBallControl = false;
+                bIsDribbling = false;
+                return;
+            }
+            break;
+        }
+        if (ControlledBall->ApplyFootTouch(
+            GetBallContactLocation(TouchFoot), GetActorForwardVector(), GetVelocity()
+        ))
+        {
+            ControlledBall->RegisterLastTouch(TeamId, this);
+        }
 
         DribbleTouchAccumulator = bIsSprinting ? 0.20f : 0.28f;
     }
@@ -1027,6 +1067,32 @@ void AFootballPlayerCharacter::ExecutePendingBallAction(
         return;
     }
 
+    AFootballMatchDirector* MatchDirector = nullptr;
+    for (TActorIterator<AFootballMatchDirector> It(GetWorld()); It; ++It)
+    {
+        MatchDirector = *It;
+        break;
+    }
+    if (IsValid(MatchDirector) && MatchDirector->IsRestartPendingForTeam(TeamId))
+    {
+        switch (MatchDirector->GetRestartType())
+        {
+        case EFootballRestartType::ThrowIn:
+            SpeedCmPerSec = 1080.0f; LiftCmPerSec = 500.0f; break;
+        case EFootballRestartType::CornerKick:
+            SpeedCmPerSec = 1800.0f; LiftCmPerSec = 480.0f; break;
+        case EFootballRestartType::GoalKick:
+            SpeedCmPerSec = 2450.0f; LiftCmPerSec = 650.0f; break;
+        case EFootballRestartType::DirectFreeKick:
+        case EFootballRestartType::IndirectFreeKick:
+            LiftCmPerSec = FMath::Max(LiftCmPerSec, 125.0f); break;
+        case EFootballRestartType::PenaltyKick:
+            SpeedCmPerSec = 2750.0f; LiftCmPerSec = 95.0f; SpinDegPerSec = 210.0f; break;
+        default:
+            break;
+        }
+    }
+
     // A player who is off balance can still attempt the action, but loses some
     // strike power. A direct contest stun blocks starting a fresh action above.
     const float BalancePowerScale = FMath::Lerp(0.72f, 1.0f, Balance);
@@ -1044,6 +1110,27 @@ void AFootballPlayerCharacter::ExecutePendingBallAction(
 
     if (bKicked)
     {
+        ControlledBall->RegisterLastTouch(TeamId, this);
+        if (IsValid(MatchDirector))
+        {
+            EFootballTacticalAction TacticalAction = EFootballTacticalAction::ShortPass;
+            if (Action == EFootballBallAction::ThroughBall) TacticalAction = EFootballTacticalAction::ThroughBall;
+            else if (Action == EFootballBallAction::Shot) TacticalAction = EFootballTacticalAction::Shot;
+            if (MatchDirector->IsRestartPendingForTeam(TeamId))
+            {
+                switch (MatchDirector->GetRestartType())
+                {
+                case EFootballRestartType::ThrowIn: TacticalAction = EFootballTacticalAction::ThrowIn; break;
+                case EFootballRestartType::CornerKick: TacticalAction = EFootballTacticalAction::CornerKick; break;
+                case EFootballRestartType::GoalKick: TacticalAction = EFootballTacticalAction::GoalKick; break;
+                case EFootballRestartType::DirectFreeKick:
+                case EFootballRestartType::IndirectFreeKick: TacticalAction = EFootballTacticalAction::FreeKick; break;
+                case EFootballRestartType::PenaltyKick: TacticalAction = EFootballTacticalAction::PenaltyKick; break;
+                default: break;
+                }
+            }
+            MatchDirector->NotifyBallPlayed(this, TacticalAction);
+        }
         ControlledBall = nullptr;
         bHasBallControl = false;
         bIsDribbling = false;
