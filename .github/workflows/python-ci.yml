@@ -32,3 +32,6 @@ jobs:
       - name: Validate fixture data
         run: |
           python tools/validate_data.py
+      - name: Validate Unreal starter bundle
+        run: |
+          python tools/validate_unreal_starter.py
