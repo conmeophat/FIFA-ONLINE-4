@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "TimerManager.h"
 #include "FootballAITypes.h"
 #include "FootballMatchDirector.generated.h"
 
