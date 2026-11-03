@@ -125,7 +125,7 @@ REQUIRED_SYMBOLS = {
         "FootballRefereeActor", "FootballBroadcastCameraActor",
         "FPO_Broadcast_Camera", "FPO_Referee",
         "b_activate_as_player_view_on_begin_play", "tracked_ball",
-        "full 11v11",
+        "11v11 match",
     ],
 }
 
