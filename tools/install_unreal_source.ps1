@@ -48,6 +48,8 @@ $RequiredFiles = @(
     "FootballAITypes.h",
     "FootballTeamAIController.h",
     "FootballTeamAIController.cpp",
+    "FootballMatchDirector.h",
+    "FootballMatchDirector.cpp",
     "FootballAIPlayerCharacter.h",
     "FootballAIPlayerCharacter.cpp",
     "AnimNotify_FootballBallContact.h",
@@ -170,7 +172,7 @@ if ($MissingMappings.Count -gt 0) {
 }
 
 Write-Host ""
-Write-Host "Football Tactical AI Engine v0.7 source installed." -ForegroundColor Green
+Write-Host "Football Match Engine v0.8 source installed." -ForegroundColor Green
 Write-Host "Project: $($UProject.FullName)"
 Write-Host "Module:  $ModuleName"
 Write-Host "Source:  $ModuleSource"
@@ -184,4 +186,4 @@ Write-Host "4. Reopen Unreal, run build_player_test_level.py, then press Play: E
 Write-Host "5. Assign foot sockets and action montages, then add Football Ball Contact notifies at the strike frames."
 Write-Host "6. Hold Left Control / Gamepad Right Shoulder to brace during a contest."
 Write-Host "7. Run build_player_test_level.py to spawn a human player and seven AI footballers using 4-3-3 slots."
-Write-Host "8. Set TeamFormation to Formation433, Formation4231 or Formation442 on each player in the team."
+Write-Host "8. Configure MatchClockRate and HalfTimeBreakSeconds on FPO_Match_Director."
