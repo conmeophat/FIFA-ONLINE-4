@@ -2,7 +2,9 @@
 
 #include "FootballBallActor.h"
 #include "FootballPlayerCharacter.h"
+#include "FootballMatchHUDWidget.h"
 #include "EngineUtils.h"
+#include "GameFramework/PlayerController.h"
 #include "TimerManager.h"
 
 AFootballMatchDirector::AFootballMatchDirector()
@@ -25,6 +27,23 @@ void AFootballMatchDirector::BeginPlay()
         MatchBall->OnGoalScored.AddDynamic(this, &AFootballMatchDirector::HandleGoalScored);
         SetRestart(EFootballRestartType::KickOff, 0,
             FVector(0.0f, 0.0f, MatchBall->BallRadiusCm + 2.0f));
+    }
+
+    if (GetWorld())
+    {
+        if (APlayerController* PlayerController = GetWorld()->GetFirstPlayerController())
+        {
+            TSubclassOf<UFootballMatchHUDWidget> WidgetClass = MatchHUDWidgetClass;
+            if (!WidgetClass)
+            {
+                WidgetClass = UFootballMatchHUDWidget::StaticClass();
+            }
+            MatchHUD = CreateWidget<UFootballMatchHUDWidget>(PlayerController, WidgetClass);
+            if (IsValid(MatchHUD))
+            {
+                MatchHUD->AddToViewport(20);
+            }
+        }
     }
 }
 
