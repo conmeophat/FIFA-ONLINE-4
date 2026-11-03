@@ -45,6 +45,11 @@ $RequiredFiles = @(
     "FootballBallActor.h",
     "FootballBallActor.cpp",
     "FootballGameplayTypes.h",
+    "FootballAITypes.h",
+    "FootballTeamAIController.h",
+    "FootballTeamAIController.cpp",
+    "FootballAIPlayerCharacter.h",
+    "FootballAIPlayerCharacter.cpp",
     "AnimNotify_FootballBallContact.h",
     "AnimNotify_FootballBallContact.cpp"
 )
@@ -63,7 +68,7 @@ foreach ($FileName in $RequiredFiles) {
 
 # Add runtime module dependencies inside the module constructor.
 $BuildContent = Get-Content -Path $BuildCs -Raw
-$DependenciesToEnsure = @("HTTP", "Json", "JsonUtilities", "InputCore", "PhysicsCore")
+$DependenciesToEnsure = @("HTTP", "Json", "JsonUtilities", "InputCore", "PhysicsCore", "AIModule", "AIModule")
 $DependencyPattern = 'PublicDependencyModuleNames\.AddRange\(\s*new\s+string\[\]\s*\{(?<items>[\s\S]*?)\}\s*\);'
 $DependencyMatch = [regex]::Match($BuildContent, $DependencyPattern)
 
@@ -88,7 +93,7 @@ else {
     $ConstructorMatch = [regex]::Match($BuildContent, $ConstructorPattern)
 
     if (-not $ConstructorMatch.Success) {
-        throw "Could not locate the module constructor in $BuildCs. Add HTTP, Json, JsonUtilities and InputCore to PublicDependencyModuleNames manually."
+        throw "Could not locate the module constructor in $BuildCs. Add HTTP, Json, JsonUtilities, InputCore and AIModule to PublicDependencyModuleNames manually."
     }
 
     $Addition = [Environment]::NewLine +
@@ -165,7 +170,7 @@ if ($MissingMappings.Count -gt 0) {
 }
 
 Write-Host ""
-Write-Host "Football Player Control Engine v0.5 source installed." -ForegroundColor Green
+Write-Host "Football Team AI Engine v0.6 source installed." -ForegroundColor Green
 Write-Host "Project: $($UProject.FullName)"
 Write-Host "Module:  $ModuleName"
 Write-Host "Source:  $ModuleSource"
@@ -178,3 +183,4 @@ Write-Host "3. Build the Development Editor target in Visual Studio."
 Write-Host "4. Reopen Unreal, run build_player_test_level.py, then press Play: E pass, Q through ball, Left Mouse shoot."
 Write-Host "5. Assign foot sockets and action montages, then add Football Ball Contact notifies at the strike frames."
 Write-Host "6. Hold Left Control / Gamepad Right Shoulder to brace during a contest."
+Write-Host "7. Run build_player_test_level.py to spawn one human player and seven AI footballers."

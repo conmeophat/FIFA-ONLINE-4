@@ -62,6 +62,11 @@
 - [x] Brace input reduces contest knockback / balance loss and slows movement
 - [x] Blueprint-callable contest impact API for future opponent / tackle overlap systems
 - [x] Animation Blueprint variables for acceleration, turn angle, balance and contest reaction
+- [x] v0.6: team-aware AI player controller with coordinated loose-ball chase and possession recognition
+- [x] v0.6: off-ball support runs and open-space scoring using team spacing and opponent distance
+- [x] v0.6: one-player press assignment, teammate marking and goal-side defensive positioning
+- [x] v0.6: close shoulder-contest calls the v0.5 balance / brace response with cooldown
+- [x] v0.6: test builder spawns a human player and seven AI footballers across two teams
 - [ ] Connect opponent / teammate overlap events to ApplyContestImpact in a later AI milestone
 - [ ] Tune all movement values in local Unreal playtests with the imported rig and locomotion animations
 

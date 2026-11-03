@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "FootballAITypes.h"
 #include "FootballGameplayTypes.generated.h"
 
 UENUM(BlueprintType)

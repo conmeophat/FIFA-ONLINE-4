@@ -38,6 +38,15 @@ public:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Football|Camera")
     TObjectPtr<UCameraComponent> FollowCamera;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Football|Team", meta = (ClampMin = "0"))
+    int32 TeamId = 0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Football|Team", meta = (ClampMin = "-1", ClampMax = "1"))
+    int32 AttackDirectionSign = 1;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Football|Team")
+    EFootballPlayerRole TeamRole = EFootballPlayerRole::Midfielder;
+
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Football|Movement", meta = (ClampMin = "100.0"))
     float WalkSpeedCmPerSec = 480.0f;
 

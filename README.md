@@ -70,6 +70,17 @@ See [Football Contact & Animation Engine v0.4](docs/FOOTBALL_CONTACT_ANIMATION_V
 
 See [Football Player Control Engine v0.5](docs/FOOTBALL_PLAYER_CONTROL_V0_5.md).
 
+### Football Team AI Engine v0.6
+- AI-controlled footballer pawn automatically creates its team AI controller.
+- Team-aware loose-ball chase and ball-carrier recognition.
+- Off-ball support runs and open-space selection that scores opponent distance, teammate spacing and field position.
+- Coordinated defending: one closest teammate presses while others mark opponents and protect goal-side lanes.
+- Close shoulder-contest invokes the v0.5 balance / brace response with a cooldown.
+- Animation Blueprint exposes AI-controlled state and current task for state-machine blending.
+- Editor test builder spawns one human player and seven AI footballers across two teams.
+
+See [Football Team AI Engine v0.6](docs/FOOTBALL_TEAM_AI_V0_6.md).
+
 **Important:** these are development blockouts and starter systems, not a finished photoreal stadium or finished football gameplay. Unreal C++ compilation and visual verification still need to happen on the target Windows machine.
 
 ## Run the Python backend (Windows PowerShell)
@@ -120,4 +131,4 @@ The files under data/fixtures are synthetic development fixtures, not real or of
 
 ## Current status
 
-The repository contains the Python API foundation, stadium/camera C++ starter, player movement/animation starter, physics ball, assisted dribbling, passing, through balls, shooting, goal detection, Editor Python builders and a PowerShell installer. The Unreal project must still be generated, compiled and play-tested in the local Unreal Editor + MSVC environment. Actual animation clips and montage assets are not bundled: the v0.4 C++ timing hooks require the user to import licensed animations, add the two foot sockets and place contact notifies. Automatic opponent collision / tackle integration is not yet implemented; the v0.5 contest response is exposed as a Blueprint-callable API for future AI. Complete match rules, 11v11 AI, official worldwide roster and online mode are not claimed yet.
+The repository contains the Python API foundation, stadium/camera C++ starter, player movement/animation starter, physics ball, assisted dribbling, passing, through balls, shooting, goal detection, team-aware AI movement / support / press / marking, Editor Python builders and a PowerShell installer. The Unreal project must still be generated, compiled and play-tested in the local Unreal Editor + MSVC environment. Actual animation clips and montage assets are not bundled: the v0.4 C++ timing hooks require the user to import licensed animations, add the two foot sockets and place contact notifies. The v0.6 prototype now includes team AI steering, off-ball support, pressing, marking and a restrained automatic shoulder-contest hook. It is not yet a full 11v11 tactical simulation, goalkeeper system, pathfinding / obstacle avoidance, automatic passing decisions or verified match AI. Complete match rules, 11v11 AI, official worldwide roster and online mode are not claimed yet.

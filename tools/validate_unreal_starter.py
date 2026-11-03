@@ -21,6 +21,11 @@ REQUIRED_FILES = [
     "unreal/StarterSource/FootballGame/FootballBallActor.h",
     "unreal/StarterSource/FootballGame/FootballBallActor.cpp",
     "unreal/StarterSource/FootballGame/FootballGameplayTypes.h",
+    "unreal/StarterSource/FootballGame/FootballAITypes.h",
+    "unreal/StarterSource/FootballGame/FootballTeamAIController.h",
+    "unreal/StarterSource/FootballGame/FootballTeamAIController.cpp",
+    "unreal/StarterSource/FootballGame/FootballAIPlayerCharacter.h",
+    "unreal/StarterSource/FootballGame/FootballAIPlayerCharacter.cpp",
     "unreal/StarterSource/FootballGame/AnimNotify_FootballBallContact.h",
     "unreal/StarterSource/FootballGame/AnimNotify_FootballBallContact.cpp",
     "unreal/Content/Python/build_stadium_level.py",
@@ -31,6 +36,7 @@ REQUIRED_FILES = [
     "docs/FOOTBALL_BALL_ENGINE_V0_3.md",
     "docs/FOOTBALL_CONTACT_ANIMATION_V0_4.md",
     "docs/FOOTBALL_PLAYER_CONTROL_V0_5.md",
+    "docs/FOOTBALL_TEAM_AI_V0_6.md",
 ]
 
 REQUIRED_SYMBOLS = {
@@ -50,6 +56,28 @@ REQUIRED_SYMBOLS = {
         "EFootballContactFoot", "EFootballBallAction", "EFootballBalanceState",
         "Stable", "Bracing", "Recovering", "OffBalance", "ContestStunned",
     ],
+    "unreal/StarterSource/FootballGame/FootballAITypes.h": [
+        "EFootballPlayerRole", "EFootballAITaskState", "SupportRun", "PressOpponent", "MarkOpponent",
+    ],
+    "unreal/StarterSource/FootballGame/FootballTeamAIController.h": [
+        "DecisionIntervalSeconds", "CurrentTaskState", "FindSpaceTarget", "ApplyCloseContest",
+    ],
+    "unreal/StarterSource/FootballGame/FootballTeamAIController.cpp": [
+        "FindClosestPlayer", "SupportRun", "PressOpponent", "MarkOpponent",
+        "FindSpaceTarget", "AddMovementInput", "ApplyContestImpact",
+    ],
+    "unreal/StarterSource/FootballGame/FootballAIPlayerCharacter.cpp": [
+        "AIControllerClass", "AFootballTeamAIController::StaticClass", "PlacedInWorldOrSpawned",
+    ],
+    "unreal/StarterSource/FootballGame/FootballPlayerCharacter.h": [
+        "TeamId", "AttackDirectionSign", "TeamRole",
+    ],
+    "unreal/StarterSource/FootballGame/FootballPlayerAnimInstance.h": [
+        "bIsAIControlled", "AITaskState",
+    ],
+    "unreal/StarterSource/FootballGame/FootballPlayerAnimInstance.cpp": [
+        "AFootballTeamAIController", "GetCurrentTaskState",
+    ],
     "unreal/StarterSource/FootballGame/FootballPlayerAnimInstance.h": [
         "MovementAcceleration", "TurnAngle", "bIsChangingDirection",
         "Balance", "bIsOffBalance", "bIsBracing", "bIsContestStunned",
@@ -61,6 +89,7 @@ REQUIRED_SYMBOLS = {
     ],
     "tools/install_unreal_source.ps1": [
         "FootballPlayerCharacter.cpp", "FootballPlayerAnimInstance.cpp",
+        "FootballTeamAIController.cpp", "FootballAIPlayerCharacter.cpp", "AIModule",
         "FootballBallActor.cpp", "PhysicsCore", 'ActionName="Brace"',
         "Gamepad_RightShoulder",
     ],

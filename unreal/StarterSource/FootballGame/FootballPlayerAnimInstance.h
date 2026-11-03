@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Animation/AnimInstance.h"
 #include "FootballGameplayTypes.h"
+#include "FootballAITypes.h"
 #include "FootballPlayerAnimInstance.generated.h"
 
 /**
@@ -85,4 +86,10 @@ public:
 
     UPROPERTY(BlueprintReadOnly, Category = "Football|Ball Action")
     EFootballContactFoot ContactFoot = EFootballContactFoot::Right;
+
+    UPROPERTY(BlueprintReadOnly, Category = "Football|AI")
+    bool bIsAIControlled = false;
+
+    UPROPERTY(BlueprintReadOnly, Category = "Football|AI")
+    EFootballAITaskState AITaskState = EFootballAITaskState::Idle;
 };

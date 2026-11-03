@@ -1,6 +1,7 @@
 #include "FootballPlayerAnimInstance.h"
 
 #include "FootballPlayerCharacter.h"
+#include "FootballTeamAIController.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
@@ -34,6 +35,8 @@ void UFootballPlayerAnimInstance::NativeUpdateAnimation(const float DeltaSeconds
         bIsUsingLeftFoot = false;
         BallAction = EFootballBallAction::None;
         ContactFoot = EFootballContactFoot::Right;
+        bIsAIControlled = false;
+        AITaskState = EFootballAITaskState::Idle;
         return;
     }
 
@@ -83,5 +86,16 @@ void UFootballPlayerAnimInstance::NativeUpdateAnimation(const float DeltaSeconds
         bIsThroughBall = BallAction == EFootballBallAction::ThroughBall;
         bIsShooting = BallAction == EFootballBallAction::Shot;
         bIsUsingLeftFoot = ContactFoot == EFootballContactFoot::Left;
+    }
+
+    if (const AFootballTeamAIController* AIController = Cast<AFootballTeamAIController>(Pawn->GetController()))
+    {
+        bIsAIControlled = true;
+        AITaskState = AIController->GetCurrentTaskState();
+    }
+    else
+    {
+        bIsAIControlled = false;
+        AITaskState = EFootballAITaskState::Idle;
     }
 }
