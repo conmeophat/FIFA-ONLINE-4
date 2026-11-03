@@ -23,14 +23,6 @@ AFootballBallActor::AFootballBallActor()
     PhysicsSphere->SetMassOverrideInKg(NAME_None, BallMassKg, true);
     PhysicsSphere->SetCanEverAffectNavigation(false);
 
-    BallPhysicalMaterial = NewObject<UPhysicalMaterial>(this, TEXT("FootballBallPhysicalMaterial"));
-    if (BallPhysicalMaterial)
-    {
-        BallPhysicalMaterial->Friction = 0.55f;
-        BallPhysicalMaterial->Restitution = 0.52f;
-        PhysicsSphere->SetPhysMaterialOverride(BallPhysicalMaterial);
-    }
-
     static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereAsset(
         TEXT("/Engine/BasicShapes/Sphere.Sphere")
     );
@@ -51,6 +43,13 @@ AFootballBallActor::AFootballBallActor()
 void AFootballBallActor::BeginPlay()
 {
     Super::BeginPlay();
+    BallPhysicalMaterial = NewObject<UPhysicalMaterial>(this, TEXT("FootballBallPhysicalMaterial"));
+    if (BallPhysicalMaterial)
+    {
+        BallPhysicalMaterial->Friction = 0.55f;
+        BallPhysicalMaterial->Restitution = 0.52f;
+        PhysicsSphere->SetPhysMaterialOverride(BallPhysicalMaterial);
+    }
     PreviousBallLocation = GetActorLocation();
 }
 
@@ -87,9 +86,9 @@ bool AFootballBallActor::ApplyKick(
 
     if (!FMath::IsNearlyZero(SpinDegPerSec))
     {
-        const FVector CurrentAngularVelocity = PhysicsSphere->GetPhysicsAngularVelocityInDegrees();
+        const FVector CurrentAngularVelocity = PhysicsSphere->GetPhysicsAngularVelocityInDegrees(NAME_None);
         PhysicsSphere->SetPhysicsAngularVelocityInDegrees(
-            CurrentAngularVelocity + FVector(0.0f, -SpinDegPerSec, 0.0f), false
+            CurrentAngularVelocity + FVector(0.0f, -SpinDegPerSec, 0.0f), false, NAME_None
         );
     }
     return true;
@@ -105,7 +104,7 @@ void AFootballBallActor::ApplyDribbleControl(
     {
         return;
     }
-    const FVector CurrentVelocity = PhysicsSphere->GetPhysicsLinearVelocity();
+    const FVector CurrentVelocity = PhysicsSphere->GetPhysicsLinearVelocity(NAME_None);
     FVector PositionError = TargetLocation - GetActorLocation();
     PositionError.Z = 0.0f;
     FVector DesiredVelocity = PlayerVelocity * 0.82f + PositionError * 2.4f;
@@ -114,7 +113,7 @@ void AFootballBallActor::ApplyDribbleControl(
 
     FVector AssistedVelocity = FMath::VInterpTo(CurrentVelocity, DesiredVelocity, DeltaSeconds, 4.0f);
     AssistedVelocity.Z = CurrentVelocity.Z;
-    PhysicsSphere->SetPhysicsLinearVelocity(AssistedVelocity, false);
+    PhysicsSphere->SetPhysicsLinearVelocity(AssistedVelocity, false, NAME_None);
 }
 
 void AFootballBallActor::CheckForGoal()
@@ -172,8 +171,8 @@ void AFootballBallActor::RegisterGoal(const int32 GoalSide)
     OnGoalScored.Broadcast(GoalSide, PositiveXScore, NegativeXScore);
     bWaitingForGoalReset = true;
     PhysicsSphere->SetSimulatePhysics(false);
-    PhysicsSphere->SetPhysicsLinearVelocity(FVector::ZeroVector);
-    PhysicsSphere->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector, false);
+    PhysicsSphere->SetPhysicsLinearVelocity(FVector::ZeroVector, false, NAME_None);
+    PhysicsSphere->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector, false, NAME_None);
     SetActorLocation(
         FVector(0.0f, 0.0f, BallRadiusCm + 1.0f),
         false, nullptr, ETeleportType::TeleportPhysics
