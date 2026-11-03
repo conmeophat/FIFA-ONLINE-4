@@ -34,6 +34,7 @@ void AFootballBroadcastCameraActor::BeginPlay()
             if (APlayerController* PlayerController = World->GetFirstPlayerController())
             {
                 PlayerController->SetViewTargetWithBlend(this, 0.75f);
+                bHasActivatedPlayerView = true;
             }
         }
     }
@@ -42,6 +43,18 @@ void AFootballBroadcastCameraActor::BeginPlay()
 void AFootballBroadcastCameraActor::Tick(const float DeltaSeconds)
 {
     Super::Tick(DeltaSeconds);
+
+    if (bActivateAsPlayerViewOnBeginPlay && !bHasActivatedPlayerView)
+    {
+        if (UWorld* World = GetWorld())
+        {
+            if (APlayerController* PlayerController = World->GetFirstPlayerController())
+            {
+                PlayerController->SetViewTargetWithBlend(this, 0.75f);
+                bHasActivatedPlayerView = true;
+            }
+        }
+    }
 
     const FVector FocusLocation = GetFocusLocation();
     const FVector DesiredLocation = GetDesiredCameraLocation(FocusLocation);
