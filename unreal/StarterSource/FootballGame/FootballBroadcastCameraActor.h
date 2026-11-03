@@ -74,6 +74,8 @@ private:
     UPROPERTY(EditAnywhere, Category = "Football|Broadcast")
     FVector ManualFocusLocation = FVector::ZeroVector;
 
+    bool bHasActivatedPlayerView = false;
+
     FVector GetFocusLocation() const;
     FVector GetDesiredCameraLocation(const FVector& FocusLocation) const;
 };
