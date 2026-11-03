@@ -140,6 +140,18 @@ public:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Football|Balance")
     bool bIsContestStunned = false;
 
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Football|Contest")
+    bool bIsInShoulderDuel = false;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Football|Contest", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+    float ContestReactionStrength = 0.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Football|Contest")
+    bool bEnableAutomaticPlayerContests = true;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Football|Contest", meta = (ClampMin = "70.0", ClampMax = "160.0"))
+    float ContestContactRadiusCm = 98.0f;
+
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Football|Balance", meta = (ClampMin = "0.0", ClampMax = "1.0"))
     float Balance = 1.0f;
 
@@ -237,6 +249,9 @@ private:
     float BallControlLockout = 0.0f;
     float DribbleTouchAccumulator = 0.0f;
     float ContestStunRemaining = 0.0f;
+    float ContestReactionRemaining = 0.0f;
+    float PlayerContestScanAccumulator = 0.0f;
+    float PlayerContestCooldown = 0.0f;
     FVector PreviousVelocity = FVector::ZeroVector;
 
     EFootballContactFoot LastDribbleFoot = EFootballContactFoot::Right;
@@ -266,6 +281,7 @@ private:
     void UpdateSprintSpeed();
     void UpdateFootballFacing(float DeltaSeconds);
     void UpdateBalance(float DeltaSeconds);
+    void UpdatePlayerContests(float DeltaSeconds);
     void UpdateDynamicMovementTuning();
     void StartBrace();
     void StopBrace();
