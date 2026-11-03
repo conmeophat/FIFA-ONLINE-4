@@ -1,0 +1,49 @@
+{
+  "dataset_type": "synthetic-development-fixtures",
+  "players": [
+    {
+      "id": "demo_player_001",
+      "full_name": "Sample Striker",
+      "current_club_id": "demo_blue_fc",
+      "positions": ["ST"],
+      "attributes": {
+        "pace": 78,
+        "shooting": 75,
+        "passing": 62,
+        "dribbling": 71,
+        "defending": 30,
+        "physical": 74
+      },
+      "is_fictional": true,
+      "source": {
+        "provider": "project-generated-fixture",
+        "source_url": null,
+        "license": "synthetic-demo-data",
+        "retrieved_at": null,
+        "verification_status": "synthetic"
+      }
+    },
+    {
+      "id": "demo_player_002",
+      "full_name": "Sample Winger",
+      "current_club_id": "demo_red_fc",
+      "positions": ["LW", "RW"],
+      "attributes": {
+        "pace": 91,
+        "shooting": 70,
+        "passing": 73,
+        "dribbling": 86,
+        "defending": 24,
+        "physical": 58
+      },
+      "is_fictional": true,
+      "source": {
+        "provider": "project-generated-fixture",
+        "source_url": null,
+        "license": "synthetic-demo-data",
+        "retrieved_at": null,
+        "verification_status": "synthetic"
+      }
+    }
+  ]
+}

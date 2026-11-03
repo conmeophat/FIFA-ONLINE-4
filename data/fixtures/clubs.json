@@ -1,0 +1,33 @@
+{
+  "dataset_type": "synthetic-development-fixtures",
+  "clubs": [
+    {
+      "id": "demo_blue_fc",
+      "name": "Demo Blue FC",
+      "country_code": "XX",
+      "competition_ids": ["demo_league"],
+      "is_fictional": true,
+      "source": {
+        "provider": "project-generated-fixture",
+        "source_url": null,
+        "license": "synthetic-demo-data",
+        "retrieved_at": null,
+        "verification_status": "synthetic"
+      }
+    },
+    {
+      "id": "demo_red_fc",
+      "name": "Demo Red FC",
+      "country_code": "XX",
+      "competition_ids": ["demo_league"],
+      "is_fictional": true,
+      "source": {
+        "provider": "project-generated-fixture",
+        "source_url": null,
+        "license": "synthetic-demo-data",
+        "retrieved_at": null,
+        "verification_status": "synthetic"
+      }
+    }
+  ]
+}
