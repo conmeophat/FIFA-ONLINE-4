@@ -144,7 +144,8 @@ void AFootballMatchDirector::NotifyBallPlayed(
 
     if (Action == EFootballTacticalAction::ThrowIn ||
         Action == EFootballTacticalAction::CornerKick ||
-        Action == EFootballTacticalAction::GoalKick)
+        Action == EFootballTacticalAction::GoalKick ||
+        Action == EFootballTacticalAction::KickOff)
     {
         OffsideCandidates.Reset();
         return;
