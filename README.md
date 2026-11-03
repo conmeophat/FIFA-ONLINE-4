@@ -1,48 +1,47 @@
 # FIFA ONLINE 4 — Python + Unreal Football Project
 
-> A community-built football game project inspired by online football management and match simulations. This is an independent project and is not affiliated with EA or the original FIFA/FC Online products.
+> An independent football game project inspired by online football management and match simulations. It is not affiliated with EA or the original FIFA / FC Online products.
 
-## Chosen direction
+## Technology direction
 
-- **Game client:** Unreal Engine 5 (C++ and Blueprints for runtime gameplay).
-- **Python:** backend services, data ingestion/validation, editor automation, AI research/prototypes, and developer tools.
-- **Initial milestone:** offline vertical slice; multiplayer is intentionally postponed.
-- **Visual target:** realistic 3D football presentation with a broadcast-style camera.
+- **Game client:** Unreal Engine 5; C++ and Blueprints handle packaged-game runtime gameplay.
+- **Python:** FastAPI backend, football-data validation/import, management rules, editor automation and developer tools.
+- **First target:** a playable offline prototype with a broadcast-style 3D camera.
+- **Later target:** online sessions after the offline match simulation is stable.
 
-### Important engine boundary
+### Important Unreal/Python boundary
 
-Unreal's Python integration is an **Editor scripting** environment, not the runtime gameplay language for packaged games. The match simulation, player controller, ball physics, animation state and client networking must run in Unreal C++/Blueprints. Python will provide the data/API/tooling layer. This boundary avoids designing a runtime architecture around a capability Unreal does not provide.
+Unreal's Python integration is an **Editor scripting** environment, not the runtime gameplay language for packaged games. Player input, movement, animation, collision, ball physics and match simulation belong in Unreal C++/Blueprints. Python provides data, APIs and tooling. See [the architecture](docs/ARCHITECTURE.md).
 
 ## Repository layout
 
 ```text
 .
-├── backend/          # Python FastAPI service and domain models
-├── data/             # Small, clearly-labelled development fixtures
-├── docs/             # Architecture, roadmap and data policy
-├── tools/            # Data validation and developer utilities
-├── unreal/           # Unreal project integration notes / future project
-└── .github/          # CI workflows
+├── backend/          # FastAPI service, domain models and tests
+├── data/fixtures/    # Synthetic development data only
+├── docs/             # Architecture, roadmap, data policy and Windows guide
+├── tools/            # Local run and data validation scripts
+├── unreal/           # Unreal setup guide and C++ integration starter
+└── .github/          # GitHub Actions CI
 ```
-
-## First milestone
-
-1. Run the Python backend locally.
-2. Validate sample clubs and players through HTTP endpoints.
-3. Create the Unreal C++ project in the Epic Games Launcher and place it under `unreal/`.
-4. Connect the Unreal client to the local backend.
-5. Build an offline match prototype before designing online authority and matchmaking.
 
 ## Run the backend (Windows PowerShell)
 
-Requires Python 3.11+.
+Requires Python 3.11 or newer.
 
 ```powershell
-py -3.12 -m venv .venv
+py -3 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 pip install -r backend\requirements.txt
 python -m uvicorn app.main:app --app-dir backend --reload --host 127.0.0.1 --port 8000
+```
+
+Or run the setup/start script:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\tools\run_backend.ps1
 ```
 
 Open:
@@ -51,17 +50,27 @@ Open:
 - http://127.0.0.1:8000/api/v1/clubs
 - http://127.0.0.1:8000/api/v1/players
 
+Run tests from the repository root:
+
+```powershell
+$env:PYTHONPATH = "backend"
+python -m pytest backend/tests -q
+python tools/validate_data.py
+```
+
+For a complete Vietnamese setup walkthrough, see [docs/GETTING_STARTED_VI.md](docs/GETTING_STARTED_VI.md).
+
 ## Data integrity and rights
 
-The files under `data/` are **development fixtures only**, not a complete or official football database. Do not infer that ratings, player attributes, club affiliations, competition membership, crests, kits, likenesses or stadium assets are official. Every production data source must be recorded with its license/permission, attribution, retrieval date and verification status. Do not scrape or redistribute protected databases, logos, photographs, player likenesses or proprietary game assets without appropriate rights.
+The files under `data/fixtures/` are **synthetic development fixtures**, not real or official football data. Production data must have documented source, license/permission, attribution, retrieval date and verification status. Do not scrape or redistribute protected databases, club crests, kits, photographs, player likenesses or proprietary game assets without appropriate rights.
 
 ## Development workflow
 
-- Keep changes on a feature branch and open a pull request into `main`.
-- Run `python -m pytest` before proposing backend changes.
-- Keep Unreal binary assets out of Git unless using Git LFS; generated build/cache folders must be ignored.
-- Never commit credentials, private tokens, local databases, or user data.
+- Work on `develop` or a feature branch; propose integration into `main` through a pull request.
+- Run the Python tests before proposing backend changes.
+- Large Unreal binary assets should use Git LFS; generated build/cache folders are ignored.
+- Never commit credentials, private tokens, local databases or user data.
 
-## Status
+## Current status
 
-Bootstrap stage — API skeleton and documented architecture are being added. Unreal project assets and a playable match have not yet been created.
+Repository foundation and Python API skeleton are present. The Unreal project itself must be generated with the installed Unreal Editor on the development PC; a playable match, official worldwide roster and online mode do not exist yet.
