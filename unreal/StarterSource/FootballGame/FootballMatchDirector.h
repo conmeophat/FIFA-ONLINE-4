@@ -8,6 +8,7 @@
 
 class AFootballBallActor;
 class AFootballPlayerCharacter;
+class UFootballMatchHUDWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnFootballRestartAwarded, EFootballRestartType, RestartType, int32, RestartTeamId);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnFootballMatchScoreChanged, int32, TeamZeroScore, int32, TeamOneScore);
@@ -31,6 +32,9 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Football|Match", meta = (ClampMin = "0.0", ClampMax = "120.0"))
     float HalfTimeBreakSeconds = 8.0f;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Football|UI")
+    TSubclassOf<UFootballMatchHUDWidget> MatchHUDWidgetClass;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Football|Pitch", meta = (ClampMin = "1000.0"))
     float PitchHalfLengthCm = 5250.0f;
@@ -108,6 +112,9 @@ protected:
 private:
     UPROPERTY(Transient)
     TObjectPtr<AFootballBallActor> MatchBall = nullptr;
+
+    UPROPERTY(Transient)
+    TObjectPtr<UFootballMatchHUDWidget> MatchHUD = nullptr;
 
     FTimerHandle HalfTimeTimer;
     float CurrentPeriodElapsedSeconds = 0.0f;
