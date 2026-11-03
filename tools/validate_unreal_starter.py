@@ -60,11 +60,13 @@ REQUIRED_SYMBOLS = {
     "unreal/StarterSource/FootballGame/FootballAITypes.h": [
         "EFootballPlayerRole", "EFootballAITaskState", "SupportRun", "PressOpponent", "MarkOpponent",
         "EFootballFormation", "Formation433", "Formation4231", "Formation442",
-        "EFootballMatchPhase", "EFootballTacticalAction", "ThroughBall", "Cross",
+        "EFootballMatchPhase", "TransitionToAttack", "TransitionToDefence",
+        "EFootballTacticalAction", "ThroughBall", "Cross",
     ],
     "unreal/StarterSource/FootballGame/FootballTeamAIController.h": [
         "DecisionIntervalSeconds", "CurrentTaskState", "FindFormationTarget",
-        "TryTacticalBallAction", "GetPassLaneClearance", "CurrentMatchPhase", "CurrentTacticalAction",
+        "TryTacticalBallAction", "GetPassLaneClearance", "SetMatchPhase",
+        "TransitionToAttack", "TransitionToDefence", "CurrentMatchPhase", "CurrentTacticalAction",
     ],
     "unreal/StarterSource/FootballGame/FootballTeamAIController.cpp": [
         "FindClosestPlayer", "SupportRun", "PressOpponent", "MarkOpponent",
