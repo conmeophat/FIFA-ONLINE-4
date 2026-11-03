@@ -2,7 +2,7 @@ $ErrorActionPreference = "Stop"
 
 $RepoRoot = Split-Path -Parent $PSScriptRoot
 $UnrealRoot = Join-Path $RepoRoot "unreal"
-$UProjects = @(Get-ChildItem -Path $UnrealRoot -Filter "*.uproject" -File -ErrorAction SilentlyContinue)
+$UProjects = @(Get-ChildItem -Path $UnrealRoot -Filter "*.uproject" -File -Recurse -ErrorAction SilentlyContinue)
 
 if ($UProjects.Count -eq 0) {
     throw "No .uproject found under '$UnrealRoot'. Create the FootballGame C++ project in Unreal Editor first."
