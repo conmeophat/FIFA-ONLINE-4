@@ -52,15 +52,26 @@ foreach ($FileName in $RequiredFiles) {
     Set-Content -Path (Join-Path $ModuleSource $FileName) -Value $Content -Encoding utf8
 }
 
+# Add dependencies inside the Build.cs class body, never after the closing brace.
 $BuildContent = Get-Content -Path $BuildCs -Raw
 $MissingDependencies = @("HTTP", "Json", "JsonUtilities") | Where-Object {
     $BuildContent -notmatch ('"' + [regex]::Escape($_) + '"')
 }
 
 if ($MissingDependencies.Count -gt 0) {
+    $LastBrace = $BuildContent.LastIndexOf("}")
+    if ($LastBrace -lt 0) {
+        throw "Could not locate the closing brace in $BuildCs."
+    }
+
     $DependencyNames = ($MissingDependencies | ForEach-Object { '"' + $_ + '"' }) -join ", "
-    $BuildContent += [Environment]::NewLine + "// Required by the Python Football Online HTTP catalogue bridge." + [Environment]::NewLine
-    $BuildContent += "PublicDependencyModuleNames.AddRange(new string[] { $DependencyNames });" + [Environment]::NewLine
+    $Addition = [Environment]::NewLine +
+        "// Required by the Python Football Online HTTP catalogue bridge." +
+        [Environment]::NewLine +
+        "PublicDependencyModuleNames.AddRange(new string[] { $DependencyNames });" +
+        [Environment]::NewLine
+
+    $BuildContent = $BuildContent.Insert($LastBrace, $Addition)
     Set-Content -Path $BuildCs -Value $BuildContent -Encoding utf8
 }
 
