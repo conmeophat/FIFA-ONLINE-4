@@ -28,10 +28,10 @@ Formation offsets are relative to the ball and rotate with AttackDirectionSign. 
 ## Match phases and pressing lines
 
 The AI publishes:
-- TransitionToAttack when the ball is loose
-- Attacking when a teammate is the nearest player in control range
-- Defending when an opponent controls the ball
-- TransitionToDefence is reserved for the next phase of the transition model
+- TransitionToAttack when the ball is loose or the team wins possession
+- Attacking after the short attacking transition window
+- TransitionToDefence when possession turns over to the opponent
+- Defending after the short defensive transition window
 
 In possession, the ball carrier advances if no viable pass or shot is available. Teammates run to their formation lanes. Out of possession:
 - The closest eligible forward / winger / midfielder leads the press.
