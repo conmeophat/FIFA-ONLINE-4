@@ -41,6 +41,7 @@ REQUIRED_FILES = [
     "docs/FOOTBALL_CONTACT_ANIMATION_V0_4.md",
     "docs/FOOTBALL_PLAYER_CONTROL_V0_5.md",
     "docs/FOOTBALL_TEAM_AI_V0_6.md",
+    "docs/FOOTBALL_MATCH_ENGINE_V0_9.md",
 ]
 
 REQUIRED_SYMBOLS = {
@@ -48,13 +49,17 @@ REQUIRED_SYMBOLS = {
         "WalkingTurnRateDegreesPerSec", "SprintTurnRateDegreesPerSec",
         "BallFacingRangeCm", "DirectionChangeSpeedLoss", "Balance",
         "EFootballBalanceState", "bIsBracing", "bIsOffBalance",
-        "ApplyContestImpact",
+        "ApplyContestImpact", "TeamId", "AttackDirectionSign", "TeamRole",
+        "TeamFormation", "SquadSlotIndex", "TryExecuteAITacticalKick",
+        "bEnableAutomaticPlayerContests", "ContestContactRadiusCm",
+        "bIsInShoulderDuel", "ContestReactionStrength",
     ],
     "unreal/StarterSource/FootballGame/FootballPlayerCharacter.cpp": [
         "TryExecuteAITacticalKick", "ApplyKickFromFoot", "EFootballTacticalAction::Cross",
         "NotifyBallPlayed", "NotifyBallTouched", "RegisterLastTouch",
-        "UpdatePlayerContests", "bIsInShoulderDuel", "ContestReactionStrength",
         "UpdateFootballFacing", "UpdateBalance", "UpdateDynamicMovementTuning",
+        "UpdatePlayerContests", "bIsInShoulderDuel", "ContestReactionStrength",
+        "RelativeSpeed", "PlayerContestCooldown",
         "FMath::FixedTurn", "BrakingDecelerationWalking",
         "Movement->AddImpulse", "StartBrace", "StopBrace",
         "bIsChangingDirection", "ContestStunRemaining",
@@ -79,13 +84,11 @@ REQUIRED_SYMBOLS = {
         "FindClosestPlayer", "SupportRun", "PressOpponent", "MarkOpponent",
         "FindFormationTarget", "TryTacticalBallAction", "ThroughBall", "Cross",
         "Formation433", "Formation4231", "Formation442", "AddMovementInput", "ApplyContestImpact",
+        "TryGoalkeeperCatch", "ReleaseFromGoalkeeper", "AttackingGoal",
+        "EFootballRestartType::CornerKick", "BoxRun",
     ],
     "unreal/StarterSource/FootballGame/FootballAIPlayerCharacter.cpp": [
         "AIControllerClass", "AFootballTeamAIController::StaticClass", "PlacedInWorldOrSpawned",
-    ],
-    "unreal/StarterSource/FootballGame/FootballPlayerCharacter.h": [
-        "TeamId", "AttackDirectionSign", "TeamRole", "TeamFormation", "SquadSlotIndex",
-        "TryExecuteAITacticalKick",
     ],
     "unreal/StarterSource/FootballGame/FootballPlayerAnimInstance.cpp": [
         "AFootballTeamAIController", "GetCurrentTaskState",
@@ -141,16 +144,8 @@ REQUIRED_SYMBOLS = {
         "bEnableAutomaticPlayerContests", "ContestContactRadiusCm",
         "bIsInShoulderDuel", "ContestReactionStrength",
     ],
-    "unreal/StarterSource/FootballGame/FootballPlayerCharacter.cpp": [
-        "UpdatePlayerContests", "RelativeSpeed", "ApplyContestImpact",
-        "PlayerContestCooldown",
-    ],
     "unreal/StarterSource/FootballGame/FootballBallActor.h": [
         "TryGoalkeeperCatch", "IsHeldByGoalkeeper", "ReleaseFromGoalkeeper",
-    ],
-    "unreal/StarterSource/FootballGame/FootballTeamAIController.cpp": [
-        "TryGoalkeeperCatch", "ReleaseFromGoalkeeper", "AttackingGoal",
-        "EFootballRestartType::CornerKick", "BoxRun",
     ],
 }
 
