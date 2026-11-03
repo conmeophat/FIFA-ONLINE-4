@@ -1,6 +1,20 @@
-"""Build a playable tactical AI football scrimmage in the current Unreal level."""
+"""Build a complete 11v11 tactical match test level."""
 
 import unreal
+
+FORMATION_433 = [
+    (-4350.0, 0.0),     # 0 GK
+    (-2600.0, -1700.0), # 1 RB
+    (-2850.0, -550.0),  # 2 RCB
+    (-2850.0, 550.0),   # 3 LCB
+    (-2600.0, 1700.0),  # 4 LB
+    (-1250.0, 0.0),     # 5 DM
+    (-650.0, -750.0),   # 6 CM
+    (-650.0, 750.0),    # 7 CM
+    (600.0, -1550.0),   # 8 RW
+    (1250.0, 0.0),      # 9 ST
+    (600.0, 1550.0),    # 10 LW
+]
 
 
 def load_class(path):
@@ -19,11 +33,13 @@ def remove_labeled_actor(subsystem, label):
 
 
 def spawn_ai_player(
-    subsystem, ai_class, label, location, team_id, attack_sign, squad_slot
+    subsystem, ai_class, label, position, team_id, attack_sign, squad_slot
 ):
+    local_x, y = position
+    x = local_x * attack_sign
     player = subsystem.spawn_actor_from_class(
         ai_class,
-        unreal.Vector(location[0], location[1], location[2]),
+        unreal.Vector(x, y, 100.0),
         unreal.Rotator(0.0, 0.0, 0.0),
         False,
     )
@@ -41,18 +57,24 @@ def main():
     character_class = load_class("/Script/FootballGame.FootballPlayerCharacter")
     ai_character_class = load_class("/Script/FootballGame.FootballAIPlayerCharacter")
     ball_class = load_class("/Script/FootballGame.FootballBallActor")
+    match_class = load_class("/Script/FootballGame.FootballMatchDirector")
 
-    labels_to_remove = [
-        "FPO_Player_Test", "FPO_Ball_Test",
+    labels_to_remove = ["FPO_Player_Test", "FPO_Ball_Test", "FPO_Match_Director"]
+    for team_id in (0, 1):
+        for slot in range(11):
+            labels_to_remove.append(f"FPO_AI_T{team_id}_S{slot:02d}")
+    labels_to_remove.extend([
         "FPO_AI_T0_Left", "FPO_AI_T0_Right", "FPO_AI_T0_Forward",
         "FPO_AI_T1_Left", "FPO_AI_T1_Right", "FPO_AI_T1_Defender", "FPO_AI_T1_Forward",
-    ]
+    ])
     for label in labels_to_remove:
         remove_labeled_actor(subsystem, label)
 
+    human_slot = 6
+    human_x, human_y = FORMATION_433[human_slot]
     player = subsystem.spawn_actor_from_class(
         character_class,
-        unreal.Vector(-500.0, 0.0, 100.0),
+        unreal.Vector(human_x, human_y, 100.0),
         unreal.Rotator(0.0, 0.0, 0.0),
         False,
     )
@@ -62,49 +84,45 @@ def main():
     player.set_editor_property("auto_possess_player", unreal.AutoReceiveInput.PLAYER0)
     player.set_editor_property("team_id", 0)
     player.set_editor_property("attack_direction_sign", 1)
-    player.set_editor_property("squad_slot_index", 6)
+    player.set_editor_property("squad_slot_index", human_slot)
 
-    # Team 0 attacks +X: one central midfielder, one winger and one striker support the user.
-    spawn_ai_player(
-        subsystem, ai_character_class, "FPO_AI_T0_Left",
-        (250.0, -950.0, 100.0), 0, 1, 7
-    )
-    spawn_ai_player(
-        subsystem, ai_character_class, "FPO_AI_T0_Right",
-        (450.0, 950.0, 100.0), 0, 1, 8
-    )
-    spawn_ai_player(
-        subsystem, ai_character_class, "FPO_AI_T0_Forward",
-        (1250.0, 0.0, 100.0), 0, 1, 9
-    )
+    # Team 0: one human plus ten AI footballers.
+    for slot, position in enumerate(FORMATION_433):
+        if slot == human_slot:
+            continue
+        spawn_ai_player(
+            subsystem, ai_character_class, f"FPO_AI_T0_S{slot:02d}",
+            position, 0, 1, slot
+        )
 
-    # Team 1 uses the same 4-3-3 slots but attacks toward negative X.
-    spawn_ai_player(
-        subsystem, ai_character_class, "FPO_AI_T1_Left",
-        (1050.0, -900.0, 100.0), 1, -1, 1
-    )
-    spawn_ai_player(
-        subsystem, ai_character_class, "FPO_AI_T1_Right",
-        (1100.0, 900.0, 100.0), 1, -1, 3
-    )
-    spawn_ai_player(
-        subsystem, ai_character_class, "FPO_AI_T1_Defender",
-        (1750.0, 0.0, 100.0), 1, -1, 5
-    )
-    spawn_ai_player(
-        subsystem, ai_character_class, "FPO_AI_T1_Forward",
-        (2350.0, 0.0, 100.0), 1, -1, 9
-    )
+    # Team 1: eleven AI footballers attacking toward negative X.
+    for slot, position in enumerate(FORMATION_433):
+        spawn_ai_player(
+            subsystem, ai_character_class, f"FPO_AI_T1_S{slot:02d}",
+            position, 1, -1, slot
+        )
 
     ball = subsystem.spawn_actor_from_class(
         ball_class,
-        unreal.Vector(-315.0, 0.0, 12.0),
+        unreal.Vector(0.0, 0.0, 13.0),
         unreal.Rotator(0.0, 0.0, 0.0),
         False,
     )
     if ball is None:
         raise RuntimeError("Could not spawn FootballBallActor.")
     ball.set_actor_label("FPO_Ball_Test")
+
+    match = subsystem.spawn_actor_from_class(
+        match_class,
+        unreal.Vector(0.0, 0.0, 0.0),
+        unreal.Rotator(0.0, 0.0, 0.0),
+        False,
+    )
+    if match is None:
+        raise RuntimeError("Could not spawn FootballMatchDirector.")
+    match.set_actor_label("FPO_Match_Director")
+    match.set_editor_property("match_clock_rate", 30.0)
+    match.set_editor_property("half_time_break_seconds", 8.0)
 
     for actor in subsystem.get_all_level_actors():
         if actor and actor.get_actor_label() == "FPO_Broadcast_Camera":
@@ -120,10 +138,11 @@ def main():
     if not unreal.EditorLoadingAndSavingUtils.save_current_level():
         unreal.log_warning("Could not auto-save level. Save it manually.")
 
-    unreal.log("Football Tactical AI v0.7: 1 human, 7 AI footballers and 1 physics ball spawned.")
-    unreal.log("Team formation defaults to 4-3-3; each player has a SquadSlotIndex.")
-    unreal.log("AI can select short passes, through balls, crosses, and shots from open lanes.")
-    unreal.log("Tactical phases: attack, defend, transition to attack and transition to defence.")
+    unreal.log("Football Match Engine v0.8: full 11v11 created (1 human + 21 AI) and one physics ball.")
+    unreal.log("Both teams use the 4-3-3 default with goalkeeper slots at SquadSlotIndex 0.")
+    unreal.log("Match Director handles clock, score, kick-offs, throw-ins, corners, goal kicks, free kicks and offside.")
+    unreal.log("Goalkeepers position, parry close shots and distribute with physical long kicks.")
+    unreal.log("MatchClockRate=30: one game-minute passes in two real seconds; adjust FPO_Match_Director to change pacing.")
 
 
 main()
