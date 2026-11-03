@@ -9,35 +9,49 @@
 - [ ] Unreal C++ project generated and checked in (with Git LFS for binary assets)
 
 ## Milestone 1 — Stadium and broadcast camera blockout
-- [x] Scale-aware pitch surface and football markings (C++ construction actor)
+- [x] Scale-aware pitch surface and football markings
 - [x] Penalty areas, goal frames and corner flags
 - [x] Three-tier stand blockout and floodlight masts
 - [x] Smooth high sideline broadcast camera with tracked actor and pitch clamps
-- [x] Unreal Editor Python script to place the actors in the current level
-- [x] PowerShell installer to copy C++ sources and add module dependencies
-- [ ] Compile the C++ project on the target Windows / Unreal installation
+- [x] Unreal Editor Python script to place actors in the level
+- [x] PowerShell installer for the stadium/camera source
+- [ ] Compile the C++ project on target Windows / Unreal installation
 - [ ] Verify the level visually and assign project materials / lighting
 
-## Milestone 2 — Single-player football prototype
-- [ ] Possess one controllable footballer
-- [ ] Add basic locomotion and animation state
-- [ ] Add ball collision, dribble touch, pass and shot prototypes
-- [ ] Add goal detection, match clock and score
-- [ ] Keep match simulation entirely in Unreal C++/Blueprint
+## Milestone 2 — Football Player Engine v0.2
+- [x] Controllable C++ ACharacter footballer
+- [x] Camera-relative WASD and gamepad-left-stick movement
+- [x] Follow camera with mouse/right-stick look
+- [x] Sprint, braking and prototype jump
+- [x] Temporary primitive mannequin proxy
+- [x] C++ Animation Blueprint parent exposing locomotion variables
+- [x] Editor Python script to spawn and possess the test character
+- [x] Installer merges input mappings and copies player source
+- [ ] Compile the player module on target Windows / Unreal installation
+- [ ] Possess and move the player in the local stadium level
+- [ ] Import a licensed rigged footballer model and configure its Animation Blueprint
+- [ ] Verify locomotion Blend Space and tune speed / turn / braking
 
-## Milestone 3 — Offline match slice
+## Milestone 3 — Ball and football actions
+- [ ] Ball actor with physical material and tuned collision
+- [ ] Ball possession / close control and foot contact
+- [ ] Passing, through balls and shooting
+- [ ] Goal detection and match clock
+- [ ] Football locomotion animations (jog, sprint, turn, stop, dribble)
+
+## Milestone 4 — Offline match slice
 - [ ] Add goalkeeper and simple teammate/opponent AI
 - [ ] Build restart states (kick-off, goal, throw-in, corner, free kick)
 - [ ] Add substitution and match summary
 - [ ] Profile CPU/GPU and validate stable frame pacing
 
-## Milestone 4 — Football management
+## Milestone 5 — Football management
 - [ ] Connect Unreal to the Python catalogue API
 - [ ] Add squads, formations, player positions and team tactics
 - [ ] Add local saves and career progression
 - [ ] Introduce a licensed, documented real-world data provider only after legal and schema review
 
-## Milestone 5 — Online foundation
+## Milestone 6 — Online foundation
 - [ ] Design account/session services and an authoritative match server
 - [ ] Implement matchmaking and reconnect handling
 - [ ] Add server-side validation, rate limits, logging and anti-cheat controls
