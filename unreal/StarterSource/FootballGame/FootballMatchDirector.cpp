@@ -241,7 +241,7 @@ void AFootballMatchDirector::SignalFoul(
     const bool bInsidePenaltyArea
 )
 {
-    if (!IsValid(Offender)) return;
+    if (!IsValid(Offender) || !IsMatchActive() || bRestartPending) return;
     const int32 AwardedTeam = Offender->TeamId == 0 ? 1 : 0;
     int32 AwardSign = -Offender->AttackDirectionSign;
     if (GetWorld())
@@ -270,6 +270,115 @@ void AFootballMatchDirector::SignalFoul(
         Spot.Y = FMath::Clamp(Spot.Y, -PitchHalfWidthCm + 250.0f, PitchHalfWidthCm - 250.0f);
         SetRestart(EFootballRestartType::DirectFreeKick, AwardedTeam, FVector(Spot.X, Spot.Y, BallZ));
     }
+}
+
+void AFootballMatchDirector::ReportContestContact(
+    AFootballPlayerCharacter* FirstPlayer,
+    AFootballPlayerCharacter* SecondPlayer,
+    const float RelativeSpeedCmPerSec
+)
+{
+    if (!IsMatchActive() || bRestartPending ||
+        !IsValid(FirstPlayer) || !IsValid(SecondPlayer) ||
+        FirstPlayer->TeamId == SecondPlayer->TeamId ||
+        RelativeSpeedCmPerSec < AutomaticFoulSpeedThresholdCmPerSec ||
+        !GetWorld())
+    {
+        return;
+    }
+
+    // The prototype only calls an automatic foul when a high-speed challenge
+    // hits the player currently controlling the ball. Loose-ball collisions
+    // remain ordinary physical contests rather than guessed fouls.
+    const bool bFirstHasBall = FirstPlayer->bHasBallControl;
+    const bool bSecondHasBall = SecondPlayer->bHasBallControl;
+    if (bFirstHasBall == bSecondHasBall)
+    {
+        return;
+    }
+
+    const float Now = GetWorld()->GetTimeSeconds();
+    if (Now - LastAutomaticFoulTimeSeconds < 2.0f)
+    {
+        return;
+    }
+
+    AFootballPlayerCharacter* FouledPlayer = bFirstHasBall ? FirstPlayer : SecondPlayer;
+    AFootballPlayerCharacter* Offender = bFirstHasBall ? SecondPlayer : FirstPlayer;
+    const FVector FoulLocation = (FouledPlayer->GetActorLocation() + Offender->GetActorLocation()) * 0.5f;
+    const int32 AttackSign = FouledPlayer->AttackDirectionSign >= 0 ? 1 : -1;
+    const float AttackingProgress = FoulLocation.X * static_cast<float>(AttackSign);
+    const bool bInsidePenaltyArea =
+        AttackingProgress >= PitchHalfLengthCm - 1650.0f &&
+        FMath::Abs(FoulLocation.Y) <= 2050.0f;
+
+    LastAutomaticFoulTimeSeconds = Now;
+    FouledPlayer->PlayFoulReactionMontage();
+    SignalFoul(Offender, FoulLocation, bInsidePenaltyArea);
+}
+
+bool AFootballMatchDirector::RequestSubstitution(
+    AFootballPlayerCharacter* PlayerOut,
+    TSubclassOf<AFootballPlayerCharacter> ReplacementClass
+)
+{
+    if (!IsValid(PlayerOut) || !GetWorld() ||
+        (CurrentPeriod != EFootballMatchPeriod::FirstHalf &&
+         CurrentPeriod != EFootballMatchPeriod::SecondHalf &&
+         CurrentPeriod != EFootballMatchPeriod::HalfTime))
+    {
+        return false;
+    }
+
+    const int32 TeamId = FMath::Clamp(PlayerOut->TeamId, 0, 1);
+    int32& Used = TeamId == 0 ? TeamZeroSubstitutionsUsed : TeamOneSubstitutionsUsed;
+    if (Used >= FMath::Max(1, MaxSubstitutionsPerTeam))
+    {
+        return false;
+    }
+
+    TSubclassOf<AFootballPlayerCharacter> SpawnClass = ReplacementClass;
+    if (!SpawnClass)
+    {
+        SpawnClass = PlayerOut->GetClass();
+    }
+
+    const FTransform SpawnTransform = PlayerOut->GetActorTransform();
+    FActorSpawnParameters SpawnParameters;
+    SpawnParameters.SpawnCollisionHandlingOverride =
+        ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+    SpawnParameters.Owner = this;
+
+    AFootballPlayerCharacter* PlayerIn =
+        GetWorld()->SpawnActor<AFootballPlayerCharacter>(SpawnClass, SpawnTransform, SpawnParameters);
+    if (!IsValid(PlayerIn))
+    {
+        return false;
+    }
+
+    // Keep the role and kit configuration of the squad slot being replaced.
+    PlayerIn->TeamId = PlayerOut->TeamId;
+    PlayerIn->AttackDirectionSign = PlayerOut->AttackDirectionSign;
+    PlayerIn->TeamRole = PlayerOut->TeamRole;
+    PlayerIn->TeamFormation = PlayerOut->TeamFormation;
+    PlayerIn->SquadSlotIndex = PlayerOut->SquadSlotIndex;
+    PlayerIn->PlayerSkeletalMesh = PlayerOut->PlayerSkeletalMesh;
+    PlayerIn->PlayerAnimationBlueprint = PlayerOut->PlayerAnimationBlueprint;
+
+    AController* FormerController = PlayerOut->GetController();
+    if (IsValid(FormerController))
+    {
+        FormerController->Possess(PlayerIn);
+        if (APlayerController* PlayerController = Cast<APlayerController>(FormerController))
+        {
+            PlayerController->SetViewTarget(PlayerIn);
+        }
+    }
+
+    PlayerOut->Destroy();
+    ++Used;
+    OnSubstitutionMade.Broadcast(TeamId, PlayerOut, PlayerIn);
+    return true;
 }
 
 bool AFootballMatchDirector::NotifyRestartTaken(AFootballPlayerCharacter* Player)
