@@ -41,7 +41,9 @@ $RequiredFiles = @(
     "FootballPlayerCharacter.h",
     "FootballPlayerCharacter.cpp",
     "FootballPlayerAnimInstance.h",
-    "FootballPlayerAnimInstance.cpp"
+    "FootballPlayerAnimInstance.cpp",
+    "FootballBallActor.h",
+    "FootballBallActor.cpp"
 )
 
 $ApiMacro = $ModuleName.ToUpperInvariant() + "_API"
@@ -58,7 +60,7 @@ foreach ($FileName in $RequiredFiles) {
 
 # Add runtime module dependencies inside the module constructor.
 $BuildContent = Get-Content -Path $BuildCs -Raw
-$DependenciesToEnsure = @("HTTP", "Json", "JsonUtilities", "InputCore", "InputCore")
+$DependenciesToEnsure = @("HTTP", "Json", "JsonUtilities", "InputCore", "PhysicsCore")
 $DependencyPattern = 'PublicDependencyModuleNames\.AddRange\(\s*new\s+string\[\]\s*\{(?<items>[\s\S]*?)\}\s*\);'
 $DependencyMatch = [regex]::Match($BuildContent, $DependencyPattern)
 
@@ -87,7 +89,7 @@ else {
     }
 
     $Addition = [Environment]::NewLine +
-        '        PublicDependencyModuleNames.AddRange(new string[] { "HTTP", "Json", "JsonUtilities" });' +
+        '        PublicDependencyModuleNames.AddRange(new string[] { "HTTP", "Json", "JsonUtilities", "InputCore", "PhysicsCore" });' +
         [Environment]::NewLine
     $InsertAt = $ConstructorMatch.Index + $ConstructorMatch.Length
     $BuildContent = $BuildContent.Insert($InsertAt, $Addition)
@@ -135,7 +137,13 @@ $InputMappings = @(
     '+ActionMappings=(ActionName="Sprint",bShift=False,bCtrl=False,bAlt=False,bCmd=False,Key=LeftShift)',
     '+ActionMappings=(ActionName="Sprint",bShift=False,bCtrl=False,bAlt=False,bCmd=False,Key=Gamepad_LeftShoulder)',
     '+ActionMappings=(ActionName="Jump",bShift=False,bCtrl=False,bAlt=False,bCmd=False,Key=SpaceBar)',
-    '+ActionMappings=(ActionName="Jump",bShift=False,bCtrl=False,bAlt=False,bCmd=False,Key=Gamepad_FaceButton_Bottom)'
+    '+ActionMappings=(ActionName="Jump",bShift=False,bCtrl=False,bAlt=False,bCmd=False,Key=Gamepad_FaceButton_Bottom),
+    '+ActionMappings=(ActionName="Pass",bShift=False,bCtrl=False,bAlt=False,bCmd=False,Key=E)',
+    '+ActionMappings=(ActionName="Pass",bShift=False,bCtrl=False,bAlt=False,bCmd=False,Key=Gamepad_FaceButton_Left)',
+    '+ActionMappings=(ActionName="ThroughBall",bShift=False,bCtrl=False,bAlt=False,bCmd=False,Key=Q)',
+    '+ActionMappings=(ActionName="ThroughBall",bShift=False,bCtrl=False,bAlt=False,bCmd=False,Key=Gamepad_FaceButton_Top)',
+    '+ActionMappings=(ActionName="Shoot",bShift=False,bCtrl=False,bAlt=False,bCmd=False,Key=LeftMouseButton)',
+    '+ActionMappings=(ActionName="Shoot",bShift=False,bCtrl=False,bAlt=False,bCmd=False,Key=Gamepad_FaceButton_Right)''
 )
 
 $MissingMappings = @($InputMappings | Where-Object { -not $InputContent.Contains($_) })
@@ -143,7 +151,7 @@ if ($MissingMappings.Count -gt 0) {
     $InputAddition = [Environment]::NewLine +
         "[/Script/Engine.InputSettings]" +
         [Environment]::NewLine +
-        "; Football Player Engine v0.2 input mappings" +
+        "; Football Ball Engine v0.3 input mappings" +
         [Environment]::NewLine +
         ($MissingMappings -join [Environment]::NewLine) +
         [Environment]::NewLine
@@ -152,7 +160,7 @@ if ($MissingMappings.Count -gt 0) {
 }
 
 Write-Host ""
-Write-Host "Football Player Engine v0.2 source installed." -ForegroundColor Green
+Write-Host "Football Ball Engine v0.3 source installed." -ForegroundColor Green
 Write-Host "Project: $($UProject.FullName)"
 Write-Host "Module:  $ModuleName"
 Write-Host "Source:  $ModuleSource"
@@ -162,4 +170,4 @@ Write-Host "Next:"
 Write-Host "1. Close Unreal Editor."
 Write-Host "2. Regenerate project files."
 Write-Host "3. Build the Development Editor target in Visual Studio."
-Write-Host "4. Reopen Unreal, save the stadium level, run build_player_test_level.py, then press Play."
+Write-Host "4. Reopen Unreal, run build_player_test_level.py, then press Play: E pass, Q through ball, Left Mouse shoot."

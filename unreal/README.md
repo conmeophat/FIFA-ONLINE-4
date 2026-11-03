@@ -22,7 +22,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 The script:
 - Finds the Unreal \`.uproject\` recursively under \`unreal/\`.
-- Copies the API bridge, stadium, broadcast camera, player character and animation instance C++ files into the generated Runtime module.
+- Copies the API bridge, stadium, broadcast camera, player character, animation instance and physics ball C++ files into the generated Runtime module.
 - Rewrites the API export macro and reflected Python class paths to match the module name.
 - Ensures HTTP, JSON and InputCore module dependencies exist.
 - Merges keyboard/mouse and common gamepad axis/action mappings into \`Config/DefaultInput.ini\`.
@@ -46,8 +46,9 @@ See the [stadium and camera guide](../docs/STADIUM_BROADCAST_CAMERA.md).
 3. The script spawns \`FPO_Player_Test\` at the pitch centre and sets Auto Possess Player 0.
 4. Press Play and use WASD/mouse, Left Shift and Space.
 5. For detailed controls, rigged mesh import and Animation Blueprint setup, read [Football Player Engine v0.2](../docs/PLAYER_ENGINE_V0_2.md).
+6. For the physics ball, dribble assist, passing, shooting and goal detection, read [Football Ball Engine v0.3](../docs/FOOTBALL_BALL_ENGINE_V0_3.md).
 
-The footballer has a primitive mannequin proxy until a compatible Skeletal Mesh is assigned. Use only character models, kits, animations and likenesses you are licensed to use.
+The footballer has a primitive mannequin proxy until a compatible Skeletal Mesh is assigned. The test builder also spawns a physics ball near the player. Use only character models, kits, animations and likenesses you are licensed to use.
 
 ## Connect to the Python backend
 

@@ -28,9 +28,13 @@ def main():
     character_class = load_class(
         "/Script/FootballGame.FootballPlayerCharacter"
     )
+    ball_class = load_class(
+        "/Script/FootballGame.FootballBallActor"
+    )
 
     # Avoid duplicate test characters when the script is run again.
     remove_labeled_actor(subsystem, "FPO_Player_Test")
+    remove_labeled_actor(subsystem, "FPO_Ball_Test")
 
     # The character capsule is 192 cm tall; its origin starts just above the pitch.
     player = subsystem.spawn_actor_from_class(
@@ -47,6 +51,17 @@ def main():
         "auto_possess_player",
         unreal.AutoReceiveInput.PLAYER0,
     )
+
+    # Start with the ball just ahead of the controlled footballer.
+    ball = subsystem.spawn_actor_from_class(
+        ball_class,
+        unreal.Vector(-315.0, 0.0, 12.0),
+        unreal.Rotator(0.0, 0.0, 0.0),
+        False,
+    )
+    if ball is None:
+        raise RuntimeError("Could not spawn FootballBallActor.")
+    ball.set_actor_label("FPO_Ball_Test")
 
     # The test player's spring-arm camera is now the active local view.
     # Keep the stadium's broadcast camera in the level for later use, but do
@@ -66,9 +81,10 @@ def main():
     if not unreal.EditorLoadingAndSavingUtils.save_current_level():
         unreal.log_warning("Could not auto-save level. Save it manually.")
 
-    unreal.log("Football Player Engine v0.2: player spawned and set to Auto Possess Player 0.")
+    unreal.log("Football Ball Engine v0.3: player and physics ball spawned. Player is Auto Possess Player 0.")
     unreal.log("Press Play. WASD moves relative to the player camera; mouse rotates the camera.")
     unreal.log("Hold Left Shift to sprint. Space jumps in this prototype.")
+    unreal.log("E: pass | Q: through ball | Left Mouse: shoot.")
 
 
 main()

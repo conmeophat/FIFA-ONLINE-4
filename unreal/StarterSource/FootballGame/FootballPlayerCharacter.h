@@ -4,6 +4,7 @@
 #include "GameFramework/Character.h"
 #include "FootballPlayerCharacter.generated.h"
 
+class AFootballBallActor;
 class UCameraComponent;
 class UMaterialInterface;
 class USkeletalMesh;
@@ -25,6 +26,7 @@ class FOOTBALLGAME_API AFootballPlayerCharacter : public ACharacter
 
 public:
     AFootballPlayerCharacter();
+    virtual void Tick(float DeltaSeconds) override;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Football|Camera")
     TObjectPtr<USpringArmComponent> CameraBoom;
@@ -122,6 +124,18 @@ private:
     void StopSprint();
     void StartJump();
     void StopJump();
+    void StartPass();
+    void StartThroughBall();
+    void StartShot();
+    void RefreshNearbyBall();
+    void UpdateBallControl(float DeltaSeconds);
+    void TryKickBall(float SpeedCmPerSec, float LiftCmPerSec, float SpinDegPerSec);
+
+    UPROPERTY(Transient)
+    TObjectPtr<AFootballBallActor> ControlledBall = nullptr;
+
+    float BallSearchAccumulator = 0.0f;
+    float BallControlLockout = 0.0f;
     void RefreshAppearance();
     void UpdateSprintSpeed();
 };

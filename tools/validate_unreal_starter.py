@@ -1,7 +1,7 @@
 """Static validation for the Unreal starter bundle.
 
-This checks repository completeness and Python builder syntax. It does NOT compile
-Unreal C++; that requires the matching Unreal Engine and MSVC toolchain on Windows.
+This checks repository completeness, expected source symbols and Python builder
+syntax. It does NOT compile Unreal C++; that requires Unreal Engine + MSVC on Windows.
 """
 
 from pathlib import Path
@@ -18,36 +18,39 @@ REQUIRED_FILES = [
     "unreal/StarterSource/FootballGame/FootballPlayerCharacter.cpp",
     "unreal/StarterSource/FootballGame/FootballPlayerAnimInstance.h",
     "unreal/StarterSource/FootballGame/FootballPlayerAnimInstance.cpp",
+    "unreal/StarterSource/FootballGame/FootballBallActor.h",
+    "unreal/StarterSource/FootballGame/FootballBallActor.cpp",
     "unreal/Content/Python/build_stadium_level.py",
     "unreal/Content/Python/build_player_test_level.py",
     "unreal/Config/DefaultInput.ini",
     "tools/install_unreal_source.ps1",
     "docs/PLAYER_ENGINE_V0_2.md",
+    "docs/FOOTBALL_BALL_ENGINE_V0_3.md",
 ]
 
 REQUIRED_SYMBOLS = {
+    "unreal/StarterSource/FootballGame/FootballBallActor.h": [
+        "PhysicsSphere", "BallMassKg", "OnGoalScored", "ApplyKick", "ApplyDribbleControl",
+    ],
+    "unreal/StarterSource/FootballGame/FootballBallActor.cpp": [
+        "SetSimulatePhysics(true)", "SetMassOverrideInKg", "RegisterGoal",
+        "PitchHalfLengthCm", "AddImpulse",
+    ],
     "unreal/StarterSource/FootballGame/FootballPlayerCharacter.cpp": [
-        "MoveForward",
-        "MoveRight",
-        "StartSprint",
-        "StopSprint",
-        "AddControllerYawInput",
-        "BrakingDecelerationWalking",
-        "PlayerFollowCamera",
+        "MoveForward", "MoveRight", "StartSprint", "StopSprint",
+        "AddControllerYawInput", "BrakingDecelerationWalking", "PlayerFollowCamera",
+        "StartPass", "StartThroughBall", "StartShot", "ApplyDribbleControl",
     ],
     "unreal/StarterSource/FootballGame/FootballPlayerAnimInstance.h": [
-        "Speed",
-        "Direction",
-        "VerticalSpeed",
-        "bIsInAir",
-        "bIsSprinting",
+        "Speed", "Direction", "VerticalSpeed", "bIsInAir", "bIsSprinting",
     ],
     "tools/install_unreal_source.ps1": [
-        "FootballPlayerCharacter.cpp",
-        "FootballPlayerAnimInstance.cpp",
-        "build_player_test_level.py",
-        "MoveForward",
-        "Gamepad_LeftY",
+        "FootballPlayerCharacter.cpp", "FootballPlayerAnimInstance.cpp",
+        "FootballBallActor.cpp", "build_player_test_level.py", "MoveForward",
+        "Gamepad_LeftY", 'ActionName="ThroughBall"', 'ActionName="Shoot"', "PhysicsCore",
+    ],
+    "unreal/Content/Python/build_player_test_level.py": [
+        "FootballBallActor", "FPO_Ball_Test", "AutoReceiveInput.PLAYER0",
     ],
 }
 
@@ -79,12 +82,6 @@ def main() -> int:
             except SyntaxError as exc:
                 failures.append(f"{relative}: Python syntax error at line {exc.lineno}: {exc.msg}")
 
-    player_builder = ROOT / "unreal/Content/Python/build_player_test_level.py"
-    if player_builder.is_file():
-        content = player_builder.read_text(encoding="utf-8")
-        if "unreal.AutoReceiveInput.PLAYER0" not in content:
-            failures.append("Player builder must use Unreal AutoReceiveInput.PLAYER0.")
-
     if failures:
         print("Unreal starter validation: FAILED")
         for failure in failures:
@@ -92,7 +89,7 @@ def main() -> int:
         return 1
 
     print("Unreal starter validation: OK")
-    print("C++ source presence and expected symbols: OK")
+    print("Ball physics, player ball actions and source presence: OK")
     print("Unreal Editor Python builder syntax: OK")
     print("Note: this is not an Unreal/MSVC C++ build.")
     return 0

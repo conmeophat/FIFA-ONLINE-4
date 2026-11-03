@@ -32,11 +32,14 @@
 - [ ] Import a licensed rigged footballer model and configure its Animation Blueprint
 - [ ] Verify locomotion Blend Space and tune speed / turn / braking
 
-## Milestone 3 — Ball and football actions
-- [ ] Ball actor with physical material and tuned collision
-- [ ] Ball possession / close control and foot contact
-- [ ] Passing, through balls and shooting
-- [ ] Goal detection and match clock
+## Milestone 3 — Football Ball Engine v0.3
+- [x] Physics-driven ball actor with collision sphere, mass, friction/restitution and damping
+- [x] Proximity-based assisted close control / dribble steering
+- [x] Short pass, through ball and lifted shot actions
+- [x] Goal-line crossing detection, score counters and Blueprint goal event
+- [x] Editor Python test-level builder spawns one player and one ball
+- [ ] Literal foot-socket touches and ball-contact animations
+- [ ] Match clock, scoreboard UI and restart states
 - [ ] Football locomotion animations (jog, sprint, turn, stop, dribble)
 
 ## Milestone 4 — Offline match slice

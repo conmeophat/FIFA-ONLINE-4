@@ -42,6 +42,15 @@ See [Stadium 3D + Broadcast Camera](docs/STADIUM_BROADCAST_CAMERA.md).
 
 See [Football Player Engine v0.2](docs/PLAYER_ENGINE_V0_2.md).
 
+### Football Ball Engine v0.3
+- Physics-driven football actor with a spherical collision body, mass, friction/restitution and damping.
+- Assisted close control while the player is near and facing the ball.
+- Short pass (E), through ball (Q) and shot (Left Mouse Button), plus gamepad equivalents.
+- Goal-line detection at both ends, score counters and a Blueprint event.
+- Test-level builder spawns the player and ball together.
+
+See [Football Ball Engine v0.3](docs/FOOTBALL_BALL_ENGINE_V0_3.md).
+
 **Important:** these are development blockouts and starter systems, not a finished photoreal stadium or finished football gameplay. Unreal C++ compilation and visual verification still need to happen on the target Windows machine.
 
 ## Run the Python backend (Windows PowerShell)
@@ -92,4 +101,4 @@ The files under data/fixtures are synthetic development fixtures, not real or of
 
 ## Current status
 
-The repository contains the Python API foundation, stadium/camera C++ starter, player movement and animation C++ starter, Editor Python builders, and an installer. The Unreal project must still be generated, compiled and play-tested in the local Unreal Editor + MSVC environment. No ball control, dribbling, passing, shooting, 11v11 AI, official worldwide roster or online mode is claimed yet.
+The repository contains the Python API foundation, stadium/camera C++ starter, player movement/animation starter, physics ball, assisted dribbling, passing, through balls, shooting, goal detection, Editor Python builders and a PowerShell installer. The Unreal project must still be generated, compiled and play-tested in the local Unreal Editor + MSVC environment. No literal foot-socket contact animation, complete match rules, 11v11 AI, official worldwide roster or online mode is claimed yet.

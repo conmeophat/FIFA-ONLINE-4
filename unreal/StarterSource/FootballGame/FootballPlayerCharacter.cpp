@@ -1,11 +1,14 @@
 #include "FootballPlayerCharacter.h"
 
+#include "FootballBallActor.h"
+
 #include "Animation/AnimInstance.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/InputComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
+#include "EngineUtils.h"
 #include "Engine/SkeletalMesh.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
@@ -18,7 +21,7 @@
 
 AFootballPlayerCharacter::AFootballPlayerCharacter()
 {
-    PrimaryActorTick.bCanEverTick = false;
+    PrimaryActorTick.bCanEverTick = true;
 
     GetCapsuleComponent()->InitCapsuleSize(38.0f, 96.0f);
 
@@ -140,6 +143,26 @@ AFootballPlayerCharacter::AFootballPlayerCharacter()
     GetMesh()->SetHiddenInGame(true);
 }
 
+void AFootballPlayerCharacter::Tick(const float DeltaSeconds)
+{
+    Super::Tick(DeltaSeconds);
+    BallControlLockout = FMath::Max(0.0f, BallControlLockout - DeltaSeconds);
+
+    if (!IsValid(ControlledBall) && BallControlLockout <= 0.0f)
+    {
+        BallSearchAccumulator -= DeltaSeconds;
+        if (BallSearchAccumulator <= 0.0f)
+        {
+            RefreshNearbyBall();
+            BallSearchAccumulator = 0.25f;
+        }
+    }
+    if (IsValid(ControlledBall))
+    {
+        UpdateBallControl(DeltaSeconds);
+    }
+}
+
 void AFootballPlayerCharacter::OnConstruction(const FTransform& Transform)
 {
     Super::OnConstruction(Transform);
@@ -197,6 +220,9 @@ void AFootballPlayerCharacter::SetupPlayerInputComponent(UInputComponent* Player
     PlayerInputComponent->BindAction(
         TEXT("Jump"), IE_Released, this, &AFootballPlayerCharacter::StopJump
     );
+    PlayerInputComponent->BindAction(TEXT("Pass"), IE_Pressed, this, &AFootballPlayerCharacter::StartPass);
+    PlayerInputComponent->BindAction(TEXT("ThroughBall"), IE_Pressed, this, &AFootballPlayerCharacter::StartThroughBall);
+    PlayerInputComponent->BindAction(TEXT("Shoot"), IE_Pressed, this, &AFootballPlayerCharacter::StartShot);
 }
 
 void AFootballPlayerCharacter::MoveForward(const float Value)
@@ -351,4 +377,105 @@ float AFootballPlayerCharacter::GetMovementDirection() const
 
     const float MovementYaw = Velocity.ToOrientationRotator().Yaw;
     return FMath::FindDeltaAngleDegrees(GetActorRotation().Yaw, MovementYaw);
+}
+
+
+void AFootballPlayerCharacter::RefreshNearbyBall()
+{
+    if (!GetWorld())
+    {
+        return;
+    }
+    constexpr float SearchRangeCm = 300.0f;
+    float BestDistanceSquared = FMath::Square(SearchRangeCm);
+    AFootballBallActor* BestBall = nullptr;
+    for (TActorIterator<AFootballBallActor> It(GetWorld()); It; ++It)
+    {
+        AFootballBallActor* Candidate = *It;
+        if (!IsValid(Candidate))
+        {
+            continue;
+        }
+        const float DistanceSquared = FVector::DistSquared2D(
+            GetActorLocation(), Candidate->GetActorLocation()
+        );
+        if (DistanceSquared < BestDistanceSquared)
+        {
+            BestDistanceSquared = DistanceSquared;
+            BestBall = Candidate;
+        }
+    }
+    ControlledBall = BestBall;
+}
+
+void AFootballPlayerCharacter::UpdateBallControl(const float DeltaSeconds)
+{
+    if (!IsValid(ControlledBall) || GetCharacterMovement()->IsFalling())
+    {
+        ControlledBall = nullptr;
+        return;
+    }
+    const FVector ToBall = ControlledBall->GetActorLocation() - GetActorLocation();
+    if (ToBall.SizeSquared2D() > FMath::Square(280.0f) ||
+        FVector::DotProduct(GetActorForwardVector(), ToBall.GetSafeNormal2D()) < -0.35f)
+    {
+        ControlledBall = nullptr;
+        return;
+    }
+
+    FVector TargetLocation = GetActorLocation() + GetActorForwardVector() * 125.0f;
+    TargetLocation += GetVelocity().GetSafeNormal2D() * 25.0f;
+    TargetLocation.Z = ControlledBall->GetActorLocation().Z;
+    ControlledBall->ApplyDribbleControl(TargetLocation, GetVelocity(), DeltaSeconds);
+}
+
+void AFootballPlayerCharacter::TryKickBall(
+    const float SpeedCmPerSec,
+    const float LiftCmPerSec,
+    const float SpinDegPerSec
+)
+{
+    if (!IsValid(ControlledBall))
+    {
+        if (BallControlLockout > 0.0f)
+        {
+            return;
+        }
+        RefreshNearbyBall();
+    }
+    if (!IsValid(ControlledBall))
+    {
+        return;
+    }
+
+    const FVector ToBall = ControlledBall->GetActorLocation() - GetActorLocation();
+    if (ToBall.SizeSquared2D() > FMath::Square(300.0f))
+    {
+        ControlledBall = nullptr;
+        return;
+    }
+
+    if (ControlledBall->ApplyKick(
+        GetActorForwardVector(), SpeedCmPerSec, LiftCmPerSec, SpinDegPerSec
+    ))
+    {
+        ControlledBall = nullptr;
+        BallControlLockout = 0.7f;
+        BallSearchAccumulator = 0.7f;
+    }
+}
+
+void AFootballPlayerCharacter::StartPass()
+{
+    TryKickBall(1500.0f, 22.0f, 80.0f);
+}
+
+void AFootballPlayerCharacter::StartThroughBall()
+{
+    TryKickBall(1900.0f, 65.0f, 130.0f);
+}
+
+void AFootballPlayerCharacter::StartShot()
+{
+    TryKickBall(2550.0f, 420.0f, 260.0f);
 }
