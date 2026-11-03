@@ -182,6 +182,59 @@ void AFootballBallActor::ApplyDribbleControl(
     PhysicsSphere->SetPhysicsLinearVelocity(AssistedVelocity, false, NAME_None);
 }
 
+void AFootballBallActor::RegisterLastTouch(const int32 TeamId, AActor* TouchingActor)
+{
+    LastTouchTeamId = TeamId;
+    LastTouchActor = TouchingActor;
+}
+
+void AFootballBallActor::StopAtRestart(const FVector& RestartLocation)
+{
+    if (!PhysicsSphere) return;
+    GetWorldTimerManager().ClearTimer(GoalResetTimer);
+    bWaitingForGoalReset = false;
+    PhysicsSphere->SetSimulatePhysics(true);
+    PhysicsSphere->SetPhysicsLinearVelocity(FVector::ZeroVector, false, NAME_None);
+    PhysicsSphere->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector, false, NAME_None);
+    SetActorLocation(RestartLocation, false, nullptr, ETeleportType::TeleportPhysics);
+    PreviousBallLocation = RestartLocation;
+    LastTouchTeamId = INDEX_NONE;
+    LastTouchActor = nullptr;
+}
+
+bool AFootballBallActor::TryGoalkeeperParry(
+    const FVector& KeeperLocation, const int32 KeeperTeamId, AActor* KeeperActor,
+    const int32 KeeperAttackDirectionSign, const float ReachCm
+)
+{
+    if (!PhysicsSphere || !PhysicsSphere->IsSimulatingPhysics() || !GetWorld()) return false;
+    const FVector BallLocation = GetActorLocation();
+    const FVector BallVelocity = PhysicsSphere->GetPhysicsLinearVelocity(NAME_None);
+    const int32 Sign = KeeperAttackDirectionSign >= 0 ? 1 : -1;
+    const float OwnGoalX = -static_cast<float>(Sign) * PitchHalfLengthCm;
+    const bool bMovingTowardOwnGoal = BallVelocity.X * -static_cast<float>(Sign) > 120.0f;
+    const bool bInOwnArea =
+        FMath::Abs(BallLocation.X - OwnGoalX) <= 2050.0f &&
+        FMath::Abs(BallLocation.Y) <= 2450.0f;
+    if (!bMovingTowardOwnGoal || !bInOwnArea ||
+        FVector::Dist(KeeperLocation, BallLocation) > FMath::Max(50.0f, ReachCm))
+    {
+        return false;
+    }
+
+    const float Now = GetWorld()->GetTimeSeconds();
+    if (Now - LastGoalkeeperParryTime < 0.65f) return false;
+    LastGoalkeeperParryTime = Now;
+    const FVector ParryVelocity(
+        static_cast<float>(Sign) * 760.0f,
+        BallVelocity.Y * 0.28f,
+        FMath::Max(240.0f, FMath::Abs(BallVelocity.Z) * 0.35f)
+    );
+    PhysicsSphere->SetPhysicsLinearVelocity(ParryVelocity, false, NAME_None);
+    RegisterLastTouch(KeeperTeamId, KeeperActor);
+    return true;
+}
+
 void AFootballBallActor::CheckForGoal()
 {
     if (!PhysicsSphere || !PhysicsSphere->IsSimulatingPhysics())
