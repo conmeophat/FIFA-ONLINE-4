@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "HttpFwd.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "FootballApiSubsystem.generated.h"
 
@@ -16,6 +17,7 @@ class FOOTBALLGAME_API UFootballApiSubsystem : public UGameInstanceSubsystem
     GENERATED_BODY()
 
 public:
+    // Set this to the local backend URL without a trailing slash.
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Football|API")
     FString ApiBaseUrl = TEXT("http://127.0.0.1:8000");
 
