@@ -48,7 +48,11 @@
 - [x] v0.8: throw-in, corner, goal-kick, direct / indirect free-kick and penalty restarts
 - [x] v0.8: basic offside-position snapshot and offence on active ball touch
 - [x] v0.8: goalkeeper positioning, close-range parry and goal-kick distribution
-- [ ] Match clock / scoreboard UI polish, automatic foul detection and complete set-piece animations
+- [x] v0.9: native UMG scoreboard with team score, clock and period
+- [x] v0.9: pairwise player shoulder contests with balanced impulses and animation telemetry
+- [x] v0.9: goalkeeper catch / hold / targeted distribution state
+- [x] v0.9: AI corner, free-kick, kick-off, throw-in and goal-kick target routines
+- [ ] Automatic foul detection and complete authored set-piece / goalkeeper animations
 - [ ] Football locomotion animations (jog, sprint, turn, stop, dribble)
 
 ## Milestone 4 — Foot Contact & Animation Engine v0.4
