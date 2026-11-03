@@ -57,6 +57,12 @@ public:
     UPROPERTY(BlueprintReadOnly, Category = "Football|Balance")
     bool bIsContestStunned = false;
 
+    UPROPERTY(BlueprintReadOnly, Category = "Football|Contest")
+    bool bIsInShoulderDuel = false;
+
+    UPROPERTY(BlueprintReadOnly, Category = "Football|Contest")
+    float ContestReactionStrength = 0.0f;
+
     UPROPERTY(BlueprintReadOnly, Category = "Football|Balance")
     EFootballBalanceState BalanceState = EFootballBalanceState::Stable;
 
