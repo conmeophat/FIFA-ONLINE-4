@@ -709,20 +709,20 @@ void AFootballTeamAIController::UpdateTeamDecision()
         const bool bInOwnPenaltyArea =
             BallDepth >= -150.0f && BallDepth <= 2150.0f && FMath::Abs(BallLocation.Y) <= 2350.0f;
 
-        if (Ball->TryGoalkeeperParry(
-            SelfPlayer->GetActorLocation(), TeamId, SelfPlayer, AttackDirectionSign, 175.0f
-        ))
-        {
-            CurrentTaskState = EFootballAITaskState::GoalkeeperDive;
-            bHasCachedMoveTarget = false;
-            return;
-        }
-
         if (Ball->TryGoalkeeperCatch(
             SelfPlayer->GetActorLocation(), TeamId, SelfPlayer, AttackDirectionSign, 190.0f, 1450.0f
         ))
         {
             CurrentTaskState = EFootballAITaskState::GoalkeeperCollect;
+            bHasCachedMoveTarget = false;
+            return;
+        }
+
+        if (Ball->TryGoalkeeperParry(
+            SelfPlayer->GetActorLocation(), TeamId, SelfPlayer, AttackDirectionSign, 175.0f
+        ))
+        {
+            CurrentTaskState = EFootballAITaskState::GoalkeeperDive;
             bHasCachedMoveTarget = false;
             return;
         }
