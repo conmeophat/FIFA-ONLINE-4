@@ -68,7 +68,7 @@ foreach ($FileName in $RequiredFiles) {
 
 # Add runtime module dependencies inside the module constructor.
 $BuildContent = Get-Content -Path $BuildCs -Raw
-$DependenciesToEnsure = @("HTTP", "Json", "JsonUtilities", "InputCore", "PhysicsCore", "AIModule", "AIModule")
+$DependenciesToEnsure = @("HTTP", "Json", "JsonUtilities", "InputCore", "PhysicsCore", "AIModule")
 $DependencyPattern = 'PublicDependencyModuleNames\.AddRange\(\s*new\s+string\[\]\s*\{(?<items>[\s\S]*?)\}\s*\);'
 $DependencyMatch = [regex]::Match($BuildContent, $DependencyPattern)
 
@@ -97,7 +97,7 @@ else {
     }
 
     $Addition = [Environment]::NewLine +
-        '        PublicDependencyModuleNames.AddRange(new string[] { "HTTP", "Json", "JsonUtilities", "InputCore", "PhysicsCore" });' +
+        '        PublicDependencyModuleNames.AddRange(new string[] { "HTTP", "Json", "JsonUtilities", "InputCore", "PhysicsCore", "AIModule" });' +
         [Environment]::NewLine
     $InsertAt = $ConstructorMatch.Index + $ConstructorMatch.Length
     $BuildContent = $BuildContent.Insert($InsertAt, $Addition)
