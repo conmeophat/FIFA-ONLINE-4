@@ -56,9 +56,9 @@ foreach ($FileName in $RequiredFiles) {
     Set-Content -Path (Join-Path $ModuleSource $FileName) -Value $Content -Encoding utf8
 }
 
-# Add HTTP/JSON dependencies inside the module constructor.
+# Add runtime module dependencies inside the module constructor.
 $BuildContent = Get-Content -Path $BuildCs -Raw
-$DependenciesToEnsure = @("HTTP", "Json", "JsonUtilities")
+$DependenciesToEnsure = @("HTTP", "Json", "JsonUtilities", "InputCore", "InputCore")
 $DependencyPattern = 'PublicDependencyModuleNames\.AddRange\(\s*new\s+string\[\]\s*\{(?<items>[\s\S]*?)\}\s*\);'
 $DependencyMatch = [regex]::Match($BuildContent, $DependencyPattern)
 
@@ -83,7 +83,7 @@ else {
     $ConstructorMatch = [regex]::Match($BuildContent, $ConstructorPattern)
 
     if (-not $ConstructorMatch.Success) {
-        throw "Could not locate the module constructor in $BuildCs. Add HTTP, Json and JsonUtilities to PublicDependencyModuleNames manually."
+        throw "Could not locate the module constructor in $BuildCs. Add HTTP, Json, JsonUtilities and InputCore to PublicDependencyModuleNames manually."
     }
 
     $Addition = [Environment]::NewLine +
