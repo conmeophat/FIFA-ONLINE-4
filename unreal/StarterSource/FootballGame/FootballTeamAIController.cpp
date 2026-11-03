@@ -713,6 +713,7 @@ void AFootballTeamAIController::UpdateTeamDecision()
             SelfPlayer->GetActorLocation(), TeamId, SelfPlayer, AttackDirectionSign, 190.0f, 1450.0f
         ))
         {
+            SelfPlayer->PlayGoalkeeperCatchMontage();
             CurrentTaskState = EFootballAITaskState::GoalkeeperCollect;
             bHasCachedMoveTarget = false;
             return;
@@ -722,6 +723,7 @@ void AFootballTeamAIController::UpdateTeamDecision()
             SelfPlayer->GetActorLocation(), TeamId, SelfPlayer, AttackDirectionSign, 175.0f
         ))
         {
+            SelfPlayer->PlayGoalkeeperDiveMontage();
             CurrentTaskState = EFootballAITaskState::GoalkeeperDive;
             bHasCachedMoveTarget = false;
             return;
@@ -753,6 +755,7 @@ void AFootballTeamAIController::UpdateTeamDecision()
                     FVector(static_cast<float>(AttackDirectionSign) * 2250.0f, 1150.0f, 0.0f);
             if (Ball->ReleaseFromGoalkeeper(SelfPlayer, DistributionTarget, 2350.0f, 630.0f, 110.0f))
             {
+                SelfPlayer->PlayGoalkeeperDistributionMontage();
                 CurrentTaskState = EFootballAITaskState::GoalkeeperDistribute;
                 CurrentTacticalAction = EFootballTacticalAction::GoalKick;
                 CurrentTacticalTarget = Outlet;
