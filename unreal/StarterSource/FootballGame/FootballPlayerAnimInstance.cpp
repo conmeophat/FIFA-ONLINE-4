@@ -37,6 +37,7 @@ void UFootballPlayerAnimInstance::NativeUpdateAnimation(const float DeltaSeconds
         bIsUsingLeftFoot = false;
         BallAction = EFootballBallAction::None;
         ContactFoot = EFootballContactFoot::Right;
+        AnimationCue = EFootballAnimationCue::None;
         bIsAIControlled = false;
         AITaskState = EFootballAITaskState::Idle;
         MatchPhase = EFootballMatchPhase::TransitionToAttack;
@@ -86,6 +87,7 @@ void UFootballPlayerAnimInstance::NativeUpdateAnimation(const float DeltaSeconds
         bIsDribbling = Footballer->bIsDribbling;
         BallAction = Footballer->ActiveBallAction;
         ContactFoot = Footballer->ActiveContactFoot;
+        AnimationCue = Footballer->ActiveAnimationCue;
 
         bIsBallActionActive = BallAction != EFootballBallAction::None;
         bIsPassing = BallAction == EFootballBallAction::ShortPass;
